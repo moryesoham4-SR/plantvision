@@ -1,0 +1,130 @@
+﻿/* PlantVision AI Custom Styling */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+html, body, [class*=css] {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* Header & Banner */
+.main-header {
+    background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%);
+    color: white;
+    padding: 1.8rem 2rem;
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.25);
+}
+
+.main-header h1 {
+    font-weight: 800;
+    font-size: 2.2rem;
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.main-header p {
+    color: #a7f3d0;
+    font-size: 1.05rem;
+    margin-top: 0.4rem;
+    margin-bottom: 0;
+}
+
+/* Cards & Containers */
+.pv-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.2rem;
+}
+
+/* Plant Selector Card */
+.plant-card {
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.2s ease-in-out;
+}
+
+.plant-card:hover {
+    border-color: #10b981;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(16, 185, 129, 0.1);
+}
+
+/* Result Box */
+.diagnosis-box {
+    border-radius: 14px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+    border-left: 6px solid;
+}
+
+.diagnosis-healthy {
+    background-color: #ecfdf5;
+    border-color: #10b981;
+    color: #065f46;
+}
+
+.diagnosis-moderate {
+    background-color: #fffbeb;
+    border-color: #f59e0b;
+    color: #92400e;
+}
+
+.diagnosis-severe {
+    background-color: #fef2f2;
+    border-color: #ef4444;
+    color: #991b1b;
+}
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 0.35rem 0.8rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.badge-healthy {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.badge-moderate {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.badge-severe {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+/* Metric Cards */
+.kpi-card {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 1.2rem;
+    text-align: center;
+}
+
+.kpi-val {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.kpi-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}

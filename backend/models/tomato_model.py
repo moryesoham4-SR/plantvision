@@ -4,36 +4,35 @@ from models.model_loader import load_plant_model
 from data.mock_predictions import get_mock_prediction
 from data.disease_library import DISEASE_KNOWLEDGE_BASE
 
-POTATO_CLASSES = [Early Blight, Healthy, Late Blight]
+TOMATO_CLASSES = [Early Blight, Healthy, Late Blight, Septoria Leaf Spot]
 
-def predict_potato(tensor_input: np.ndarray, original_filename: str = ") -> dict:
+def predict_tomato(tensor_input: np.ndarray, original_filename: str = ") -> dict:
  "
- Inference handler for Potato Model.
+ Inference handler for Tomato Model.
  Input: Normalized NumPy array with shape (1, 224, 224, 3).
  Output: Standardized prediction dictionary.
  "
- model = load_plant_model(potato)
+ model = load_plant_model(tomato)
  
  if model is None:
- # Fallback to high-accuracy mock prediction
- time.sleep(0.4) # Simulate realistic model latency
- return get_mock_prediction(potato, original_filename)
+ time.sleep(0.4)
+ return get_mock_prediction(tomato, original_filename)
 
  start_time = time.time()
- raw_predictions = model.predict(tensor_input) # Shape: (1, num_classes)
+ raw_predictions = model.predict(tensor_input)
  inference_time = (time.time() - start_time) * 1000
 
  predicted_idx = int(np.argmax(raw_predictions[0]))
- predicted_disease = POTATO_CLASSES[predicted_idx]
+ predicted_disease = TOMATO_CLASSES[predicted_idx]
  confidence = float(raw_predictions[0][predicted_idx])
 
- probs = {cls_name: round(float(prob), 4) for cls_name, prob in zip(POTATO_CLASSES, raw_predictions[0])}
- disease_info = DISEASE_KNOWLEDGE_BASE[potato][predicted_disease]
+ probs = {cls_name: round(float(prob), 4) for cls_name, prob in zip(TOMATO_CLASSES, raw_predictions[0])}
+ disease_info = DISEASE_KNOWLEDGE_BASE[tomato][predicted_disease]
 
  return {
- plant_id: potato,
- plant_name: Potato,
- scientific_name: Solanum tuberosum,
+ plant_id: tomato,
+ plant_name: Tomato,
+ scientific_name: Solanum lycopersicum,
  predicted_disease: predicted_disease,
  pathogen: disease_info[scientific_name],
  confidence: confidence,

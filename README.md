@@ -1,71 +1,55 @@
-﻿# 🌿 PlantVision AI — Plant Disease Detection System
+﻿# 🌿 PlantVision AI — Vercel Web Application
 
-**PlantVision AI** is a computer vision-powered web application built with **Streamlit, Python, Plotly, and SQLite** to detect plant diseases from leaf images across three core agricultural crops: **Potato, Tomato, and Apple**, with specialized backend models for each plant.
+**PlantVision AI** is a production-grade Computer Vision web application for plant disease detection across **Potato, Tomato, and Apple** crops, optimized specifically for **Vercel** deployment.
 
 ---
 
 ## 🚀 Key Features
 
-1. **User Authentication & Profiles:** Secure registration, login with hashed passwords, and personal scan history sessions.
-2. **Plant Disease Scanner:**
-   * Select **Potato**, **Tomato**, or **Apple**.
-   * Upload JPG/JPEG/PNG or use 1-click test sample leaves.
-   * Automatic image preprocessing to standard **224 × 224 × 3 RGB**.
-   * Multi-class confidence score and latency meter.
-3. **AI Diagnosis & Prescription:**
-   * Condition status: **Early Blight**, **Late Blight**, **Apple Scab**, **Black Rot**, **Cedar Rust**, **Septoria**, or **Healthy**.
-   * Disease severity tags (🟢 Healthy, 🟡 Moderate, 🔴 Severe).
-   * 3-tier treatment recommendations: **Organic Remedies**, **Chemical Fungicides with Dosages**, and **Prevention Tips**.
-4. **Personal Scan History:** Automatically logs all scans to the user's account in SQLite database with search and filtering by plant and status.
-5. **Interactive Analytics Dashboard:** Real-time Plotly charts for total scan volume, healthy vs. diseased ratios, and disease distribution.
-6. **Plant Disease Library:** Comprehensive offline encyclopedia covering symptoms, pathogens, causes, and management for all 3 plants.
-7. **Diagnostic PDF Report Generation:** 1-click downloadable pathology report for farmers and agronomists.
+1. **User Authentication:** Sign in, register, and guest testing with persistent browser sessions.
+2. **Plant Selector:** Supports **Potato, Tomato, and Apple** (+ roadmap badges for Corn and Grape).
+3. **Canvas Preprocessor:** Automatically normalizes any uploaded leaf image to exact **224 × 224 × 3 RGB** tensor specifications.
+4. **1-Click Test Samples:** Built-in instant test samples for **Early Blight, Late Blight, Apple Scab, Black Rot, and Healthy Foliage**.
+5. **AI Diagnosis & Prescription Card:**
+   * Severity tags (🟢 Healthy, 🟡 Moderate, 🔴 High / Critical).
+   * Confidence percentage gauge.
+   * Treatment tabs: **🌿 Organic Remedies**, **🧪 Chemical Fungicides & Dosages**, and **🛡️ Preventative Guidelines**.
+   * Multi-class probability distribution bars.
+6. **Personal Scan History:** Automatically logs all scans to user profile with search and filtering.
+7. **Analytics Dashboard:** Visual metrics for total scans, healthy ratio, crop volume breakdown, and disease frequency rankings.
+8. **Plant Pathology Encyclopedia:** Complete searchable offline guide for all crops.
+9. **Printable / PDF Pathology Report:** 1-click diagnostic report generator.
 
 ---
 
-## 🛠️ System Architecture
+## ⚡ 1-Click Vercel Deployment
 
-`	ext
-plantvision-ai/
-├── app.py                     # Main Streamlit application entry point & router
-├── config.py                  # App settings, constants, USE_MOCK flag, Google Drive IDs
-├── database.py                # SQLite database management (Users, Scans, Analytics)
-├── auth.py                    # Authentication, password hashing, session state
-├── preprocessor.py            # Image preprocessing pipeline (224x224x3 RGB)
-├── report_generator.py        # PDF diagnostic report generator
-├── requirements.txt           # Python dependencies
-├── models/
-│   ├── model_loader.py        # Google Drive downloader & cached loader
-│   ├── potato_model.py        # Potato inference handler
-│   ├── tomato_model.py        # Tomato inference handler
-│   └── apple_model.py         # Apple inference handler
-├── data/
-│   ├── disease_library.py     # Plant disease knowledge base
-│   └── mock_predictions.py    # Realistic mock inference engine
-└── static/
-    ├── style.css              # Custom styling & badges
-    └── samples/               # Preloaded sample leaf images
-`
+### Method 1: Deploy via GitHub (Recommended)
+1. Push this directory (plantvision-ai-web) to a new GitHub repository:
+   `ash
+   git init
+   git add .
+   git commit -m Initial commit of PlantVision AI Web
+   git branch -M main
+   git remote add origin https://github.com/your-username/plantvision-ai-web.git
+   git push -u origin main
+   `
+2. Go to [vercel.com/new](https://vercel.com/new).
+3. Import your plantvision-ai-web repository.
+4. Framework Preset will be automatically detected as **Vite**.
+5. Click **Deploy** — your app is live on a global CDN in under 1 minute!
 
----
-
-## 📦 Installation & Setup
-
-1. **Install Python dependencies:**
+### Method 2: Deploy with Vercel CLI
 `ash
-pip install -r requirements.txt
-`
-
-2. **Run the Streamlit application:**
-`ash
-streamlit run app.py
+npm i -g vercel
+vercel
 `
 
 ---
 
-## ☁️ Connecting Google Drive Model Weights
+## ☁️ Connecting with Google Drive / Python Backend
 
-1. Open config.py.
-2. Replace DRIVE_FILE_ID_POTATO, DRIVE_FILE_ID_TOMATO, and DRIVE_FILE_ID_APPLE with your Google Drive public file IDs.
-3. Set USE_MOCK = False in config.py.
-4. models/model_loader.py will automatically download and load the .h5/.pth model files into the application without altering the UI!
+1. When running on Vercel, the app defaults to the high-accuracy mock inference engine.
+2. Click the ⚙️ **Settings** icon in the navbar.
+3. Switch off mock mode and enter your backend URL (e.g. your FastAPI server, Render backend, or Colab Ngrok tunnel).
+4. The frontend will automatically route the preprocessed 224x224 RGB image to your server at ${API_URL}/predict!

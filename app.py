@@ -97,6 +97,17 @@ if not st.session_state.dark_mode:
     div[data-testid="stFileUploader"] span, div[data-testid="stFileUploader"] small {
         color: #64748B !important;
     }
+    div[data-testid="stFileUploader"] button {
+        background-color: #059669 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        font-weight: 700 !important;
+    }
+    div[data-testid="stFileUploader"] button * {
+        color: #FFFFFF !important;
+        fill: #FFFFFF !important;
+        stroke: #FFFFFF !important;
+    }
     div[data-testid="stTabs"] button[role="tab"] {
         color: #64748B !important;
     }
@@ -104,6 +115,7 @@ if not st.session_state.dark_mode:
         color: #059669 !important;
         border-bottom-color: #059669 !important;
     }
+
 
     .kpi-card {
         background-color: #FFFFFF !important;

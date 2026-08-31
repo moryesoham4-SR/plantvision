@@ -46,6 +46,30 @@ div.stDownloadButton > button:hover {
     color: #ffffff !important;
 }
 
+/* File Uploader Button (Browse Files) */
+[data-testid="stFileUploader"] button {
+    background-color: #059669 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 0.5rem !important;
+    padding: 0.5rem 1.25rem !important;
+    font-weight: 700 !important;
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.2) !important;
+}
+[data-testid="stFileUploader"] button:hover {
+    background-color: #047857 !important;
+    color: #ffffff !important;
+}
+[data-testid="stFileUploader"] button *,
+[data-testid="stFileUploader"] button span,
+[data-testid="stFileUploader"] button svg,
+[data-testid="stFileUploader"] button p {
+    color: #ffffff !important;
+    fill: #ffffff !important;
+    stroke: #ffffff !important;
+}
+
+
 /* Diagnosis Severity Boxes */
 .diagnosis-box {
     padding: 1.5rem;

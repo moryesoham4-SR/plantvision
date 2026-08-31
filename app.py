@@ -35,115 +35,22 @@ if "dark_mode" not in st.session_state:
 if "auth_view" not in st.session_state:
     st.session_state.auth_view = "login"
 
-# 2. Custom CSS & Dark Mode Theme Injection
+# 2. Custom CSS Loading
+chart_theme = "plotly_dark"
 css_file = config.STATIC_DIR / "style.css"
-custom_css = ""
 if css_file.exists():
     with open(css_file, "r", encoding="utf-8") as f:
-        custom_css = f.read()
-
-# Dynamic Theme CSS
-if st.session_state.dark_mode:
-    dark_css = """
-    <style>
-    .stApp {
-        background-color: #0b0f19 !important;
-        color: #f1f5f9 !important;
-    }
-    header[data-testid="stHeader"] {
-        background-color: #0b0f19 !important;
-    }
-    section[data-testid="stSidebar"] {
-        background-color: #111827 !important;
-        border-right: 1px solid #1f2937 !important;
-    }
-    section[data-testid="stSidebar"] * {
-        color: #f1f5f9 !important;
-    }
-    .stMarkdown, .stText, p, span, label, h1, h2, h3, h4, h5, h6 {
-        color: #f1f5f9 !important;
-    }
-    div[data-testid="stExpander"] {
-        background-color: #111827 !important;
-        border: 1px solid #1f2937 !important;
-        border-radius: 0.75rem !important;
-    }
-    div[data-testid="stExpander"] summary {
-        color: #f1f5f9 !important;
-    }
-    div[data-testid="stForm"] {
-        background-color: #111827 !important;
-        border: 1px solid #1f2937 !important;
-        border-radius: 1rem !important;
-        padding: 1.5rem !important;
-    }
-    div[data-testid="stTextInput"] input, div[data-testid="stSelectbox"] div, div[data-testid="stFileUploader"] section {
-        background-color: #1f2937 !important;
-        color: #f8fafc !important;
-        border-color: #374151 !important;
-    }
-    div[data-testid="stFileUploader"] section small {
-        color: #94a3b8 !important;
-    }
-    div[data-testid="stTabs"] button[role="tab"] {
-        color: #94a3b8 !important;
-    }
-    div[data-testid="stTabs"] button[aria-selected="true"] {
-        color: #10b981 !important;
-        border-bottom-color: #10b981 !important;
-    }
-    .auth-card {
-        background-color: #111827 !important;
-        border-color: #1f2937 !important;
-    }
-    .kpi-card {
-        background-color: #111827 !important;
-        border-color: #1f2937 !important;
-    }
-    .kpi-val {
-        color: #f8fafc !important;
-    }
-    .kpi-label {
-        color: #94a3b8 !important;
-    }
-    .diagnosis-healthy {
-        background-color: #064e3b !important;
-        color: #ecfdf5 !important;
-        border-left-color: #10b981 !important;
-    }
-    .diagnosis-moderate {
-        background-color: #451a03 !important;
-        color: #fef3c7 !important;
-        border-left-color: #f59e0b !important;
-    }
-    .diagnosis-severe {
-        background-color: #450a0a !important;
-        color: #fee2e2 !important;
-        border-left-color: #ef4444 !important;
-    }
-    </style>
-    """
-    st.markdown(f"<style>{custom_css}</style>{dark_css}", unsafe_allow_html=True)
-else:
-    st.markdown(f"<style>{custom_css}</style>", unsafe_allow_html=True)
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
 # 3. Authentication Routing
 if not auth.is_authenticated():
-    # Top banner with Dark mode switch
-    top_col1, top_col2 = st.columns([5, 1])
-    with top_col1:
-        st.markdown("""
-            <div class="main-header">
-                <h1>🌿 PlantVision AI</h1>
-                <p>Computer Vision-Powered Plant Disease Detection & Treatment System</p>
-            </div>
-        """, unsafe_allow_html=True)
-    with top_col2:
-        dark_toggle = st.toggle("🌙 Dark Mode", value=st.session_state.dark_mode, key="auth_dark_toggle")
-        if dark_toggle != st.session_state.dark_mode:
-            st.session_state.dark_mode = dark_toggle
-            st.rerun()
+    st.markdown("""
+        <div class="main-header">
+            <h1>🌿 PlantVision AI</h1>
+            <p>Computer Vision-Powered Plant Disease Detection & Treatment System</p>
+        </div>
+    """, unsafe_allow_html=True)
 
     # Centered Single-Form Authentication Card
     _, center_col, _ = st.columns([1, 2, 1])
@@ -171,7 +78,7 @@ if not auth.is_authenticated():
                             st.error(msg)
 
             st.markdown("---")
-            st.markdown("<p style='text-align: center;'>Don't have an account yet?</p>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center; color: #94a3b8;'>Don't have an account yet?</p>", unsafe_allow_html=True)
             if st.button("📝 Create New Account", use_container_width=True):
                 st.session_state.auth_view = "register"
                 st.rerun()
@@ -212,7 +119,7 @@ if not auth.is_authenticated():
                             st.error(msg)
 
             st.markdown("---")
-            st.markdown("<p style='text-align: center;'>Already registered?</p>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center; color: #94a3b8;'>Already registered?</p>", unsafe_allow_html=True)
             if st.button("⬅️ Back to Sign In", use_container_width=True):
                 st.session_state.auth_view = "login"
                 st.rerun()
@@ -221,19 +128,12 @@ if not auth.is_authenticated():
 
 # 4. Authenticated Sidebar Navigation
 user = auth.get_current_user()
-chart_theme = "plotly_dark" if st.session_state.dark_mode else "plotly_white"
 
 with st.sidebar:
     st.markdown(f"### 👤 **{user['full_name']}**")
     st.caption(f"@{user['username']} • {user['email']}")
-    
-    # Dark Mode Toggle
-    dark_mode_active = st.toggle("🌙 Dark Mode", value=st.session_state.dark_mode, key="sidebar_dark_toggle")
-    if dark_mode_active != st.session_state.dark_mode:
-        st.session_state.dark_mode = dark_mode_active
-        st.rerun()
-
     st.markdown("---")
+
     
     selected_page = st.radio(
         "Navigation Menu",

@@ -5,7 +5,7 @@
     border-radius: 1rem;
     color: white;
     margin-bottom: 1.5rem;
-    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15);
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
 }
 .main-header h1 {
     color: white !important;
@@ -17,13 +17,7 @@
     margin: 0;
     font-size: 0.95rem;
 }
-.auth-card {
-    background-color: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 1rem;
-    padding: 2rem;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-}
+
 .diagnosis-box {
     padding: 1.5rem;
     border-radius: 0.75rem;
@@ -31,20 +25,21 @@
     border-left: 6px solid #10b981;
 }
 .diagnosis-healthy {
-    background-color: #ecfdf5;
+    background-color: #064e3b;
     border-left-color: #10b981;
-    color: #065f46;
+    color: #ecfdf5;
 }
 .diagnosis-moderate {
-    background-color: #fffbeb;
+    background-color: #451a03;
     border-left-color: #f59e0b;
-    color: #92400e;
+    color: #fef3c7;
 }
 .diagnosis-severe {
-    background-color: #fef2f2;
+    background-color: #450a0a;
     border-left-color: #ef4444;
-    color: #991b1b;
+    color: #fee2e2;
 }
+
 .badge {
     display: inline-block;
     padding: 0.25rem 0.75rem;
@@ -54,80 +49,38 @@
     text-transform: uppercase;
 }
 .badge-healthy {
-    background-color: #d1fae5;
-    color: #065f46;
+    background-color: #047857;
+    color: #ecfdf5;
 }
 .badge-moderate {
-    background-color: #fef3c7;
-    color: #92400e;
+    background-color: #b45309;
+    color: #fffbeb;
 }
 .badge-severe {
-    background-color: #fee2e2;
-    color: #991b1b;
+    background-color: #b91c1c;
+    color: #fef2f2;
 }
+
 .kpi-card {
-    background-color: white;
+    background-color: #111827;
     border-radius: 0.75rem;
     padding: 1.25rem;
     text-align: center;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid #1f2937;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 .kpi-val {
     font-size: 2rem;
     font-weight: 800;
-    color: #0f172a;
+    color: #f8fafc;
 }
 .kpi-label {
     font-size: 0.8rem;
     font-weight: 600;
-    color: #64748b;
+    color: #94a3b8;
     text-transform: uppercase;
     margin-top: 0.25rem;
 }
 
-/* ================= DARK MODE STYLES ================= */
-.dark-theme-active .auth-card {
-    background-color: #1e293b !important;
-    border-color: #334155 !important;
-    color: #f8fafc !important;
-}
-.dark-theme-active .kpi-card {
-    background-color: #1e293b !important;
-    border-color: #334155 !important;
-}
-.dark-theme-active .kpi-val {
-    color: #f8fafc !important;
-}
-.dark-theme-active .kpi-label {
-    color: #94a3b8 !important;
-}
-.dark-theme-active .diagnosis-healthy {
-    background-color: #064e3b !important;
-    border-left-color: #10b981 !important;
-    color: #d1fae5 !important;
-}
-.dark-theme-active .diagnosis-moderate {
-    background-color: #451a03 !important;
-    border-left-color: #f59e0b !important;
-    color: #fef3c7 !important;
-}
-.dark-theme-active .diagnosis-severe {
-    background-color: #450a0a !important;
-    border-left-color: #ef4444 !important;
-    color: #fee2e2 !important;
-}
-.dark-theme-active .badge-healthy {
-    background-color: #047857 !important;
-    color: #ecfdf5 !important;
-}
-.dark-theme-active .badge-moderate {
-    background-color: #b45309 !important;
-    color: #fffbeb !important;
-}
-.dark-theme-active .badge-severe {
-    background-color: #b91c1c !important;
-    color: #fef2f2 !important;
-}
 
 

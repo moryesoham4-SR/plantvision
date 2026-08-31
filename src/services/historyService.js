@@ -1,16 +1,16 @@
-﻿import { supabase, isSupabaseConfigured } from ./supabaseClient;
+import { supabase, isSupabaseConfigured } from "./supabaseClient";
 
-const STORAGE_KEY_SCANS = plantvision_scan_history;
+const STORAGE_KEY_SCANS = "plantvision_scan_history";
 
 export const historyService = {
   async getAllScans(userId) {
     // 1. SUPABASE DATABASE SYNC
-    if (isSupabaseConfigured() && supabase && userId && userId !== guest_farmer) {
+    if (isSupabaseConfigured() && supabase && userId && userId !== "guest_farmer") {
       try {
         const { data, error } = await supabase
-          .from(scans)
-          .select(*)
-          .order(created_at, { ascending: false });
+          .from("scans")
+          .select("*")
+          .order("created_at", { ascending: false });
 
         if (!error && data) {
           // Normalize Supabase rows
@@ -32,7 +32,7 @@ export const historyService = {
           }));
         }
       } catch (err) {
-        console.warn(Supabase fetch failed, using local storage:, err);
+        console.warn("Supabase fetch failed, using local storage:", err);
       }
     }
 
@@ -50,8 +50,8 @@ export const historyService = {
 
   async saveScan(userId, scanResult) {
     const record = {
-      id: scan_ + Date.now(),
-      userId: userId || guest_farmer,
+      id: "scan_" + Date.now(),
+      userId: userId || "guest_farmer",
       timestamp: new Date().toISOString(),
       plantId: scanResult.plantId,
       plantName: scanResult.plantId.charAt(0).toUpperCase() + scanResult.plantId.slice(1),
@@ -73,9 +73,9 @@ export const historyService = {
     localStorage.setItem(STORAGE_KEY_SCANS, JSON.stringify(scans));
 
     // Save to Supabase table if available
-    if (isSupabaseConfigured() && supabase && userId && userId !== guest_farmer) {
+    if (isSupabaseConfigured() && supabase && userId && userId !== "guest_farmer") {
       try {
-        await supabase.from(scans).insert({
+        await supabase.from("scans").insert({
           user_id: userId,
           plant_id: record.plantId,
           plant_name: record.plantName,
@@ -90,7 +90,7 @@ export const historyService = {
           remedies: record.remedies
         });
       } catch (err) {
-        console.warn(Supabase insert error:, err);
+        console.warn("Supabase insert error:", err);
       }
     }
 
@@ -109,7 +109,7 @@ export const historyService = {
     // Delete from Supabase
     if (isSupabaseConfigured() && supabase) {
       try {
-        await supabase.from(scans).delete().eq(id, scanId);
+        await supabase.from("scans").delete().eq("id", scanId);
       } catch {}
     }
     return true;
@@ -123,24 +123,24 @@ export const historyService = {
 
     const plantCounts = { potato: 0, tomato: 0, apple: 0 };
     scans.forEach(s => {
-      const p = (s.plantId || ").toLowerCase();
- if (plantCounts[p] !== undefined) plantCounts[p]++;
- else plantCounts[p] = 1;
- });
+      const p = (s.plantId || "").toLowerCase();
+      if (plantCounts[p] !== undefined) plantCounts[p]++;
+      else plantCounts[p] = 1;
+    });
 
- const diseaseCounts = {};
- scans.filter(s => !s.isHealthy).forEach(s => {
- diseaseCounts[s.predictedDisease] = (diseaseCounts[s.predictedDisease] || 0) + 1;
- });
+    const diseaseCounts = {};
+    scans.filter(s => !s.isHealthy).forEach(s => {
+      diseaseCounts[s.predictedDisease] = (diseaseCounts[s.predictedDisease] || 0) + 1;
+    });
 
- return {
- totalScans,
- healthyCount,
- diseasedCount,
- healthRatio,
- plantCounts,
- diseaseCounts,
- recentScans: scans.slice(0, 5)
- };
- }
+    return {
+      totalScans,
+      healthyCount,
+      diseasedCount,
+      healthRatio,
+      plantCounts,
+      diseaseCounts,
+      recentScans: scans.slice(0, 5)
+    };
+  }
 };

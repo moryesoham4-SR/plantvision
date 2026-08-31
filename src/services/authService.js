@@ -1,7 +1,7 @@
-﻿import { supabase, isSupabaseConfigured } from ./supabaseClient;
+import { supabase, isSupabaseConfigured } from "./supabaseClient";
 
-const STORAGE_KEY_USER = plantvision_user_session;
-const STORAGE_KEY_ACCOUNTS = plantvision_registered_accounts;
+const STORAGE_KEY_USER = "plantvision_user_session";
+const STORAGE_KEY_ACCOUNTS = "plantvision_registered_accounts";
 
 export const authService = {
   getCurrentUser() {
@@ -47,14 +47,14 @@ export const authService = {
 
         // Create profile in Supabase profiles table if available
         try {
-          await supabase.from(profiles).upsert({
+          await supabase.from("profiles").upsert({
             id: user.id,
             full_name: user.fullName,
             username: user.username,
             updated_at: new Date().toISOString()
           });
         } catch (e) {
-          console.warn(Profile table insert skipped:, e);
+          console.warn("Profile table insert skipped:", e);
         }
 
         localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
@@ -65,12 +65,12 @@ export const authService = {
     }
 
     // 2. LOCAL STORAGE FALLBACK (If Supabase not yet configured)
-    const users = JSON.parse(localStorage.getItem(STORAGE_KEY_ACCOUNTS) || []);
+    const users = JSON.parse(localStorage.getItem(STORAGE_KEY_ACCOUNTS) || "[]");
     if (users.find(u => u.username === cleanUsername)) {
-      return { success: false, message: Username is already taken. };
+      return { success: false, message: "Username is already taken." };
     }
     if (users.find(u => u.email === cleanEmail)) {
-      return { success: false, message: Email is already registered. };
+      return { success: false, message: "Email is already registered." };
     }
 
     const newUser = {
@@ -97,7 +97,7 @@ export const authService = {
     const cleanInput = usernameOrEmail.trim().toLowerCase();
 
     // 1. SUPABASE AUTH (By Email)
-    if (isSupabaseConfigured() && supabase && cleanInput.includes(@)) {
+    if (isSupabaseConfigured() && supabase && cleanInput.includes("@")) {
       try {
         const { data, error } = await supabase.auth.signInWithPassword({
           email: cleanInput,
@@ -110,8 +110,8 @@ export const authService = {
 
         const user = {
           id: data.user.id,
-          fullName: data.user.user_metadata?.full_name || cleanInput.split(@)[0],
-          username: data.user.user_metadata?.username || cleanInput.split(@)[0],
+          fullName: data.user.user_metadata?.full_name || cleanInput.split("@")[0],
+          username: data.user.user_metadata?.username || cleanInput.split("@")[0],
           email: data.user.email,
           isSupabase: true
         };
@@ -124,13 +124,13 @@ export const authService = {
     }
 
     // 2. LOCAL STORAGE FALLBACK
-    const users = JSON.parse(localStorage.getItem(STORAGE_KEY_ACCOUNTS) || []);
+    const users = JSON.parse(localStorage.getItem(STORAGE_KEY_ACCOUNTS) || "[]");
     const found = users.find(
       u => (u.username === cleanInput || u.email === cleanInput) && u.password === password
     );
 
     if (!found) {
-      return { success: false, message: Invalid credentials. If using Supabase, please sign in with your email. };
+      return { success: false, message: "Invalid credentials. If using Supabase, please sign in with your email." };
     }
 
     const sessionUser = { ...found };
@@ -141,10 +141,10 @@ export const authService = {
 
   guestLogin() {
     const guestUser = {
-      id: guest_farmer,
-      fullName: Guest Agronomist,
-      username: guest,
-      email: guest@plantvision.ai,
+      id: "guest_farmer",
+      fullName: "Guest Agronomist",
+      username: "guest",
+      email: "guest@plantvision.ai",
       isGuest: true,
       createdAt: new Date().toISOString()
     };

@@ -1,4 +1,4 @@
-﻿import { simulateInference } from ../data/mockInference;
+import { simulateInference } from "../data/mockInference";
 
 export const detectionService = {
   /**
@@ -7,12 +7,12 @@ export const detectionService = {
   async preprocessImage(imageSource) {
     return new Promise((resolve, reject) => {
       const img = new Image();
-      img.crossOrigin = anonymous;
+      img.crossOrigin = "anonymous";
       img.onload = () => {
-        const canvas = document.createElement(canvas);
+        const canvas = document.createElement("canvas");
         canvas.width = 224;
         canvas.height = 224;
-        const ctx = canvas.getContext(2d);
+        const ctx = canvas.getContext("2d");
         
         // Draw & resize to 224x224
         ctx.drawImage(img, 0, 0, 224, 224);
@@ -30,7 +30,7 @@ export const detectionService = {
           bSum += data[i + 2];
         }
 
-        const dataUrl224 = canvas.toDataURL(image/jpeg, 0.92);
+        const dataUrl224 = canvas.toDataURL("image/jpeg", 0.92);
 
         resolve({
           originalWidth: img.width,
@@ -44,17 +44,17 @@ export const detectionService = {
           avgB: Math.round(bSum / totalPixels)
         });
       };
-      img.onerror = () => reject(new Error(Failed to load leaf image for preprocessing.));
+      img.onerror = () => reject(new Error("Failed to load leaf image for preprocessing."));
       
-      if (typeof imageSource === string) {
+      if (typeof imageSource === "string") {
         img.src = imageSource;
       } else if (imageSource instanceof File || imageSource instanceof Blob) {
         const reader = new FileReader();
         reader.onload = (e) => { img.src = e.target.result; };
-        reader.onerror = () => reject(new Error(File reading error.));
+        reader.onerror = () => reject(new Error("File reading error."));
         reader.readAsDataURL(imageSource);
       } else {
-        reject(new Error(Invalid image source type.));
+        reject(new Error("Invalid image source type."));
       }
     });
   },
@@ -62,50 +62,50 @@ export const detectionService = {
   /**
    * Runs plant disease diagnosis (Mock or Remote Backend API)
    */
-  async detectDisease(plantId, imageFileOrUrl, filenameHint = ") {
- const configData = JSON.parse(localStorage.getItem(plantvision_api_config) || {});
- const useMock = configData.useMock !== undefined ? configData.useMock : true;
- const apiUrl = configData.apiUrl || ;
+  async detectDisease(plantId, imageFileOrUrl, filenameHint = "") {
+    const configData = JSON.parse(localStorage.getItem("plantvision_api_config") || "{}");
+    const useMock = configData.useMock !== undefined ? configData.useMock : true;
+    const apiUrl = configData.apiUrl || "";
 
- // 1. Client-side Preprocessing to 224x224x3 RGB
- const preprocessed = await this.preprocessImage(imageFileOrUrl);
+    // 1. Client-side Preprocessing to 224x224x3 RGB
+    const preprocessed = await this.preprocessImage(imageFileOrUrl);
 
- if (useMock || !apiUrl) {
- // Simulate realistic model inference latency (800ms - 1200ms)
- await new Promise(r => setTimeout(r, 900));
- const result = simulateInference(plantId, filenameHint);
- return {
- ...result,
- preprocessedImage: preprocessed.dataUrl,
- preprocessedMeta: preprocessed
- };
- }
+    if (useMock || !apiUrl) {
+      // Simulate realistic model inference latency (800ms - 1200ms)
+      await new Promise(r => setTimeout(r, 900));
+      const result = simulateInference(plantId, filenameHint);
+      return {
+        ...result,
+        preprocessedImage: preprocessed.dataUrl,
+        preprocessedMeta: preprocessed
+      };
+    }
 
- // 2. Real Remote Backend Inference (Google Drive / Colab / FastAPI)
- const formData = new FormData();
- formData.append(plant, plantId);
- if (imageFileOrUrl instanceof File) {
- formData.append(image, imageFileOrUrl);
- } else {
- // Convert dataURL to Blob
- const blob = await (await fetch(preprocessed.dataUrl)).blob();
- formData.append(image, blob, leaf_224x224.jpg);
- }
+    // 2. Real Remote Backend Inference (Google Drive / Colab / FastAPI)
+    const formData = new FormData();
+    formData.append("plant", plantId);
+    if (imageFileOrUrl instanceof File) {
+      formData.append("image", imageFileOrUrl);
+    } else {
+      // Convert dataURL to Blob
+      const blob = await (await fetch(preprocessed.dataUrl)).blob();
+      formData.append("image", blob, "leaf_224x224.jpg");
+    }
 
- const res = await fetch(${apiUrl}/predict, {
- method: POST,
- body: formData
- });
+    const res = await fetch(`${apiUrl}/predict`, {
+      method: "POST",
+      body: formData
+    });
 
- if (!res.ok) {
- throw new Error(Inference server responded with error );
- }
+    if (!res.ok) {
+      throw new Error(`Inference server responded with error ${res.status}`);
+    }
 
- const data = await res.json();
- return {
- ...data,
- preprocessedImage: preprocessed.dataUrl,
- preprocessedMeta: preprocessed
- };
- }
+    const data = await res.json();
+    return {
+      ...data,
+      preprocessedImage: preprocessed.dataUrl,
+      preprocessedMeta: preprocessed
+    };
+  }
 };

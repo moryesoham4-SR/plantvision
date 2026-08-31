@@ -31,16 +31,98 @@ auth.init_auth_state()
 
 # Session State Variables
 if "dark_mode" not in st.session_state:
-    st.session_state.dark_mode = False
+    st.session_state.dark_mode = True
 if "auth_view" not in st.session_state:
     st.session_state.auth_view = "login"
 
-# 2. Custom CSS Loading
-chart_theme = "plotly_dark"
+# 2. Dynamic CSS Loading & Theme Engine
+chart_theme = "plotly_dark" if st.session_state.dark_mode else "plotly_white"
+
 css_file = config.STATIC_DIR / "style.css"
 if css_file.exists():
     with open(css_file, "r", encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+# Dynamic Light Theme Override when toggled off
+if not st.session_state.dark_mode:
+    light_override_css = """
+    <style>
+    .stApp {
+        background-color: #F8FAFC !important;
+        color: #0F172A !important;
+    }
+    header[data-testid="stHeader"] {
+        background-color: #F8FAFC !important;
+    }
+    section[data-testid="stSidebar"] {
+        background-color: #FFFFFF !important;
+        border-right: 1px solid #E2E8F0 !important;
+    }
+    section[data-testid="stSidebar"] * {
+        color: #0F172A !important;
+    }
+    .stMarkdown, .stText, p, span, label, h1, h2, h3, h4, h5, h6 {
+        color: #0F172A !important;
+    }
+    div[data-testid="stExpander"] {
+        background-color: #FFFFFF !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 0.75rem !important;
+    }
+    div[data-testid="stExpander"] summary {
+        color: #0F172A !important;
+    }
+    div[data-testid="stForm"] {
+        background-color: #FFFFFF !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 1rem !important;
+        padding: 1.5rem !important;
+    }
+    div[data-testid="stTextInput"] input, div[data-testid="stSelectbox"] div, div[data-testid="stFileUploader"] section {
+        background-color: #FFFFFF !important;
+        color: #0F172A !important;
+        border-color: #CBD5E1 !important;
+    }
+    div[data-testid="stFileUploader"] section small {
+        color: #64748B !important;
+    }
+    div[data-testid="stTabs"] button[role="tab"] {
+        color: #64748B !important;
+    }
+    div[data-testid="stTabs"] button[aria-selected="true"] {
+        color: #059669 !important;
+        border-bottom-color: #059669 !important;
+    }
+    .kpi-card {
+        background-color: #FFFFFF !important;
+        border-color: #E2E8F0 !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    }
+    .kpi-val {
+        color: #0F172A !important;
+    }
+    .kpi-label {
+        color: #64748B !important;
+    }
+    .diagnosis-healthy {
+        background-color: #ECFDF5 !important;
+        color: #065F46 !important;
+        border-left-color: #10B981 !important;
+    }
+    .diagnosis-moderate {
+        background-color: #FFFBEB !important;
+        color: #92400E !important;
+        border-left-color: #F59E0B !important;
+    }
+    .diagnosis-severe {
+        background-color: #FEF2F2 !important;
+        color: #991B1B !important;
+        border-left-color: #EF4444 !important;
+    }
+    </style>
+    """
+    st.markdown(light_override_css, unsafe_allow_html=True)
+
 
 
 # 3. Authentication Routing
@@ -538,11 +620,23 @@ elif selected_page == "⚙️ Settings & Info":
     st.markdown("""
         <div class="main-header">
             <h1>⚙️ Settings & Backend Configuration</h1>
-            <p>Manage model connections, Google Drive integration, and account profile.</p>
+            <p>Manage theme preferences, model connections, Google Drive integration, and account profile.</p>
         </div>
     """, unsafe_allow_html=True)
     
-    st.subheader("1. Backend Model & Google Drive Status")
+    st.subheader("1. 🎨 Appearance & Display Theme")
+    theme_col1, theme_col2 = st.columns([1, 2])
+    with theme_col1:
+        dark_switch = st.toggle("🌙 Dark Mode", value=st.session_state.dark_mode, key="settings_dark_mode_toggle")
+        if dark_switch != st.session_state.dark_mode:
+            st.session_state.dark_mode = dark_switch
+            st.rerun()
+    with theme_col2:
+        st.info(f"✨ Currently Active: **{'Dark Slate Theme (Optimized)' if st.session_state.dark_mode else 'Light Clean Theme'}**")
+
+    st.markdown("---")
+
+    st.subheader("2. Backend Model & Google Drive Status")
     st.write("This application supports plug-and-play connection to your Google Drive model weights.")
     
     st.markdown(f"""
@@ -551,7 +645,7 @@ elif selected_page == "⚙️ Settings & Info":
     - **Apple Model File:** `{config.PLANTS['apple']['model_file']}` (Drive ID: `{config.PLANTS['apple']['drive_file_id']}`)
     """)
     
-    st.subheader("2. Input Preprocessing Configuration")
+    st.subheader("3. Input Preprocessing Configuration")
     st.markdown("""
     - **Resolution:** 224 × 224
     - **Color Channels:** 3 (RGB)
@@ -559,7 +653,7 @@ elif selected_page == "⚙️ Settings & Info":
     - **Batch Shape:** (1, 224, 224, 3)
     """)
     
-    st.subheader("3. Account Information")
+    st.subheader("4. Account Information")
     st.markdown(f"""
     - **User ID:** `{user['id']}`
     - **Full Name:** **{user['full_name']}**
@@ -567,5 +661,6 @@ elif selected_page == "⚙️ Settings & Info":
     - **Email:** `{user['email']}`
     - **Member Since:** `{user['created_at']}`
     """)
+
 
 

@@ -19,7 +19,7 @@ from models.apple_model import predict_apple
 
 # 1. Page Configuration
 st.set_page_config(
-    page_title="PlantVision AI — Disease Detection",
+    page_title="PlantVision AI — Plant Pathology System",
     page_icon="🌿",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -29,70 +29,196 @@ st.set_page_config(
 database.init_db()
 auth.init_auth_state()
 
-# 2. Custom CSS Loading
+# Session State Variables
+if "dark_mode" not in st.session_state:
+    st.session_state.dark_mode = False
+if "auth_view" not in st.session_state:
+    st.session_state.auth_view = "login"
+
+# 2. Custom CSS & Dark Mode Theme Injection
 css_file = config.STATIC_DIR / "style.css"
+custom_css = ""
 if css_file.exists():
     with open(css_file, "r", encoding="utf-8") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+        custom_css = f.read()
+
+# Dynamic Theme CSS
+if st.session_state.dark_mode:
+    dark_css = """
+    <style>
+    .stApp {
+        background-color: #0b0f19 !important;
+        color: #f1f5f9 !important;
+    }
+    header[data-testid="stHeader"] {
+        background-color: #0b0f19 !important;
+    }
+    section[data-testid="stSidebar"] {
+        background-color: #111827 !important;
+        border-right: 1px solid #1f2937 !important;
+    }
+    section[data-testid="stSidebar"] * {
+        color: #f1f5f9 !important;
+    }
+    .stMarkdown, .stText, p, span, label, h1, h2, h3, h4, h5, h6 {
+        color: #f1f5f9 !important;
+    }
+    div[data-testid="stExpander"] {
+        background-color: #111827 !important;
+        border: 1px solid #1f2937 !important;
+        border-radius: 0.75rem !important;
+    }
+    div[data-testid="stForm"] {
+        background-color: #111827 !important;
+        border: 1px solid #1f2937 !important;
+        border-radius: 1rem !important;
+        padding: 1.5rem !important;
+    }
+    div[data-testid="stTextInput"] input, div[data-testid="stSelectbox"] div {
+        background-color: #1f2937 !important;
+        color: #f8fafc !important;
+        border-color: #374151 !important;
+    }
+    .auth-card {
+        background-color: #111827 !important;
+        border-color: #1f2937 !important;
+    }
+    .kpi-card {
+        background-color: #111827 !important;
+        border-color: #1f2937 !important;
+    }
+    .kpi-val {
+        color: #f8fafc !important;
+    }
+    .kpi-label {
+        color: #94a3b8 !important;
+    }
+    .diagnosis-healthy {
+        background-color: #064e3b !important;
+        color: #ecfdf5 !important;
+        border-left-color: #10b981 !important;
+    }
+    .diagnosis-moderate {
+        background-color: #451a03 !important;
+        color: #fef3c7 !important;
+        border-left-color: #f59e0b !important;
+    }
+    .diagnosis-severe {
+        background-color: #450a0a !important;
+        color: #fee2e2 !important;
+        border-left-color: #ef4444 !important;
+    }
+    </style>
+    """
+    st.markdown(f"<style>{custom_css}</style>{dark_css}", unsafe_allow_html=True)
+else:
+    st.markdown(f"<style>{custom_css}</style>", unsafe_allow_html=True)
 
 # 3. Authentication Routing
 if not auth.is_authenticated():
-    st.markdown("""
-        <div class="main-header">
-            <h1>🌿 PlantVision AI</h1>
-            <p>Computer Vision-Powered Plant Disease Detection & Treatment System</p>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    auth_col1, auth_col2 = st.columns([1, 1], gap="large")
-    
-    with auth_col1:
-        st.markdown("### 🔐 User Login")
-        st.info("Log in to access your personal plant scanner, scan history, and analytics.")
-        with st.form("login_form"):
-            login_username = st.text_input("Username", placeholder="e.g. farmer_john")
-            login_password = st.text_input("Password", type="password", placeholder="••••••••")
-            submit_login = st.form_submit_button("Sign In", use_container_width=True)
+    # Top banner with Dark mode switch
+    top_col1, top_col2 = st.columns([5, 1])
+    with top_col1:
+        st.markdown("""
+            <div class="main-header">
+                <h1>🌿 PlantVision AI</h1>
+                <p>Computer Vision-Powered Plant Disease Detection & Treatment System</p>
+            </div>
+        """, unsafe_allow_html=True)
+    with top_col2:
+        dark_toggle = st.toggle("🌙 Dark Mode", value=st.session_state.dark_mode, key="auth_dark_toggle")
+        if dark_toggle != st.session_state.dark_mode:
+            st.session_state.dark_mode = dark_toggle
+            st.rerun()
+
+    # Centered Single-Form Authentication Card
+    _, center_col, _ = st.columns([1, 2, 1])
+
+    with center_col:
+        # ====== VIEW 1: SIGN IN ======
+        if st.session_state.auth_view == "login":
+            st.markdown("### 🔐 Sign In to Your Account")
+            st.caption("Enter your credentials to access your crop diagnostic scanner and personal scan logs.")
             
-            if submit_login:
-                if not login_username or not login_password:
-                    st.error("Please provide both username and password.")
-                else:
-                    success, msg = auth.login(login_username, login_password)
-                    if success:
-                        st.success(msg)
-                        st.rerun()
+            with st.form("login_form"):
+                login_username = st.text_input("Username or Email", placeholder="e.g. farmer_john or john@plantvision.ai")
+                login_password = st.text_input("Password", type="password", placeholder="••••••••")
+                submit_login = st.form_submit_button("🚀 Sign In", type="primary", use_container_width=True)
+
+                if submit_login:
+                    if not login_username or not login_password:
+                        st.error("Please fill in both username/email and password.")
                     else:
-                        st.error(msg)
-                        
-    with auth_col2:
-        st.markdown("### 📝 Create New Account")
-        with st.form("register_form"):
-            reg_name = st.text_input("Full Name", placeholder="e.g. John Doe")
-            reg_username = st.text_input("Username", placeholder="e.g. farmer_john")
-            reg_email = st.text_input("Email Address", placeholder="john@example.com")
-            reg_password = st.text_input("Password", type="password", placeholder="••••••••")
-            submit_reg = st.form_submit_button("Register Account", use_container_width=True)
-            
-            if submit_reg:
-                if not reg_name or not reg_username or not reg_email or not reg_password:
-                    st.error("All fields are required.")
-                else:
-                    pwd_hash = auth.hash_password(reg_password)
-                    success, uid, msg = database.register_user(reg_username, reg_name, reg_email, pwd_hash)
-                    if success:
-                        st.success("Account created successfully! You can now log in.")
+                        success, msg = auth.login(login_username, login_password)
+                        if success:
+                            st.success("Signed in successfully! Loading dashboard...")
+                            st.rerun()
+                        else:
+                            st.error(msg)
+
+            st.markdown("---")
+            st.markdown("<p style='text-align: center;'>Don't have an account yet?</p>", unsafe_allow_html=True)
+            if st.button("📝 Create New Account", use_container_width=True):
+                st.session_state.auth_view = "register"
+                st.rerun()
+
+            # Demo hint
+            st.info("💡 **Quick Demo Login:** Username: `farmer_john` | Password: `password123`")
+
+        # ====== VIEW 2: REGISTER (WITH INSTANT AUTO-LOGIN) ======
+        else:
+            st.markdown("### 📝 Create New Account")
+            st.caption("Register now to save scan records, view analytics, and generate treatment reports.")
+
+            with st.form("register_form"):
+                reg_name = st.text_input("Full Name", placeholder="e.g. John Doe")
+                reg_username = st.text_input("Username", placeholder="e.g. farmer_john")
+                reg_email = st.text_input("Email Address", placeholder="john@example.com")
+                reg_password = st.text_input("Password", type="password", placeholder="••••••••")
+                reg_password_confirm = st.text_input("Confirm Password", type="password", placeholder="••••••••")
+                
+                submit_reg = st.form_submit_button("🌱 Register & Sign In", type="primary", use_container_width=True)
+
+                if submit_reg:
+                    if not reg_name or not reg_username or not reg_email or not reg_password:
+                        st.error("All fields are required.")
+                    elif reg_password != reg_password_confirm:
+                        st.error("Passwords do not match. Please verify your password.")
+                    elif len(reg_password) < 6:
+                        st.error("Password must be at least 6 characters long.")
                     else:
-                        st.error(msg)
-                        
+                        pwd_hash = auth.hash_password(reg_password)
+                        success, uid, msg = database.register_user(reg_username, reg_name, reg_email, pwd_hash)
+                        if success and uid:
+                            # Instant Auto-Login on Registration
+                            auth.login_by_id(uid)
+                            st.success(f"🎉 Welcome aboard, {reg_name}! Your account is created and you are now logged in.")
+                            st.rerun()
+                        else:
+                            st.error(msg)
+
+            st.markdown("---")
+            st.markdown("<p style='text-align: center;'>Already registered?</p>", unsafe_allow_html=True)
+            if st.button("⬅️ Back to Sign In", use_container_width=True):
+                st.session_state.auth_view = "login"
+                st.rerun()
+
     st.stop()
 
 # 4. Authenticated Sidebar Navigation
 user = auth.get_current_user()
+chart_theme = "plotly_dark" if st.session_state.dark_mode else "plotly_white"
 
 with st.sidebar:
-    st.markdown(f"### 👤 Welcome, **{user['full_name']}**")
-    st.caption(f"Account: @{user['username']} | Email: {user['email']}")
+    st.markdown(f"### 👤 **{user['full_name']}**")
+    st.caption(f"@{user['username']} • {user['email']}")
+    
+    # Dark Mode Toggle
+    dark_mode_active = st.toggle("🌙 Dark Mode", value=st.session_state.dark_mode, key="sidebar_dark_toggle")
+    if dark_mode_active != st.session_state.dark_mode:
+        st.session_state.dark_mode = dark_mode_active
+        st.rerun()
+
     st.markdown("---")
     
     selected_page = st.radio(
@@ -109,9 +235,9 @@ with st.sidebar:
     
     st.markdown("---")
     if config.USE_MOCK:
-        st.caption("🟢 **Inference Mode:** Mock Engine (Active)")
+        st.caption("🟢 **Inference Engine:** Active")
     else:
-        st.caption("⚡ **Inference Mode:** Live Model Files")
+        st.caption("⚡ **Inference Engine:** Live Weights")
         
     if st.button("🚪 Log Out", use_container_width=True):
         auth.logout()
@@ -190,7 +316,7 @@ if selected_page == "🔬 Disease Scanner":
                 uploaded_image = Image.open(sample_path)
                 sample_name = selected_sample_file
             else:
-                # Generate synthetic fallback preview image
+                # Synthetic sample preview
                 uploaded_image = Image.new("RGB", (300, 300), color=(46, 139, 87))
                 sample_name = selected_sample_file or "sample_leaf.jpg"
                 
@@ -293,7 +419,8 @@ if selected_page == "🔬 Disease Scanner":
                     labels={"x": "Probability", "y": "Condition"},
                     title="Model Output Class Distribution",
                     color=list(probs_data.values()),
-                    color_continuous_scale="Greens" if res["is_healthy"] else "YlOrRd"
+                    color_continuous_scale="Greens" if res["is_healthy"] else "YlOrRd",
+                    template=chart_theme
                 )
                 fig.update_layout(height=220, margin=dict(l=10, r=10, t=30, b=10))
                 st.plotly_chart(fig, use_container_width=True)
@@ -422,7 +549,8 @@ elif selected_page == "📊 Analytics Dashboard":
                 values=values,
                 color=labels,
                 color_discrete_map={"Healthy": "#10B981", "Diseased": "#EF4444"},
-                hole=0.4
+                hole=0.4,
+                template=chart_theme
             )
             st.plotly_chart(fig_pie, use_container_width=True)
             
@@ -435,7 +563,8 @@ elif selected_page == "📊 Analytics Dashboard":
                     y=list(plant_data.values()),
                     labels={"x": "Plant", "y": "Scan Count"},
                     color=list(plant_data.keys()),
-                    color_discrete_sequence=px.colors.qualitative.Prism
+                    color_discrete_sequence=px.colors.qualitative.Prism,
+                    template=chart_theme
                 )
                 st.plotly_chart(fig_plant, use_container_width=True)
                 
@@ -448,7 +577,8 @@ elif selected_page == "📊 Analytics Dashboard":
                 y=list(disease_data.values()),
                 labels={"x": "Disease Name", "y": "Detections"},
                 color=list(disease_data.values()),
-                color_continuous_scale="Reds"
+                color_continuous_scale="Reds",
+                template=chart_theme
             )
             st.plotly_chart(fig_dis, use_container_width=True)
         else:
@@ -523,4 +653,5 @@ elif selected_page == "⚙️ Settings & Info":
     - **Email:** `{user['email']}`
     - **Member Since:** `{user['created_at']}`
     """)
+
 

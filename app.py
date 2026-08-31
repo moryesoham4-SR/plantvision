@@ -68,16 +68,29 @@ if st.session_state.dark_mode:
         border: 1px solid #1f2937 !important;
         border-radius: 0.75rem !important;
     }
+    div[data-testid="stExpander"] summary {
+        color: #f1f5f9 !important;
+    }
     div[data-testid="stForm"] {
         background-color: #111827 !important;
         border: 1px solid #1f2937 !important;
         border-radius: 1rem !important;
         padding: 1.5rem !important;
     }
-    div[data-testid="stTextInput"] input, div[data-testid="stSelectbox"] div {
+    div[data-testid="stTextInput"] input, div[data-testid="stSelectbox"] div, div[data-testid="stFileUploader"] section {
         background-color: #1f2937 !important;
         color: #f8fafc !important;
         border-color: #374151 !important;
+    }
+    div[data-testid="stFileUploader"] section small {
+        color: #94a3b8 !important;
+    }
+    div[data-testid="stTabs"] button[role="tab"] {
+        color: #94a3b8 !important;
+    }
+    div[data-testid="stTabs"] button[aria-selected="true"] {
+        color: #10b981 !important;
+        border-bottom-color: #10b981 !important;
     }
     .auth-card {
         background-color: #111827 !important;
@@ -113,6 +126,7 @@ if st.session_state.dark_mode:
     st.markdown(f"<style>{custom_css}</style>{dark_css}", unsafe_allow_html=True)
 else:
     st.markdown(f"<style>{custom_css}</style>", unsafe_allow_html=True)
+
 
 # 3. Authentication Routing
 if not auth.is_authenticated():

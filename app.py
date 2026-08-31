@@ -115,7 +115,24 @@ if not st.session_state.dark_mode:
         color: #059669 !important;
         border-bottom-color: #059669 !important;
     }
-
+    div[data-testid="stToggle"] div[role="switch"] {
+        background-color: #CBD5E1 !important;
+        border: 2px solid #94A3B8 !important;
+    }
+    div[data-testid="stToggle"] div[role="switch"][aria-checked="true"] {
+        background-color: #059669 !important;
+        border-color: #047857 !important;
+    }
+    div[data-testid="stToggle"] div[role="switch"] div {
+        background-color: #FFFFFF !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+    }
+    div[data-testid="stToggle"] label,
+    div[data-testid="stToggle"] p,
+    div[data-testid="stToggle"] span {
+        color: #0F172A !important;
+        font-weight: 600 !important;
+    }
 
     .kpi-card {
         background-color: #FFFFFF !important;
@@ -128,6 +145,7 @@ if not st.session_state.dark_mode:
     .kpi-label {
         color: #64748B !important;
     }
+
     .diagnosis-healthy {
         background-color: #ECFDF5 !important;
         color: #065F46 !important;
@@ -649,16 +667,20 @@ elif selected_page == "⚙️ Settings & Info":
     """, unsafe_allow_html=True)
     
     st.subheader("1. 🎨 Appearance & Display Theme")
-    theme_col1, theme_col2 = st.columns([1, 2])
-    with theme_col1:
-        dark_switch = st.toggle("🌙 Dark Mode", value=st.session_state.dark_mode, key="settings_dark_mode_toggle")
-        if dark_switch != st.session_state.dark_mode:
-            st.session_state.dark_mode = dark_switch
-            st.rerun()
-    with theme_col2:
-        st.info(f"✨ Currently Active: **{'Dark Slate Theme (Optimized)' if st.session_state.dark_mode else 'Light Clean Theme'}**")
+    theme_choice = st.radio(
+        "Choose Display Mode:",
+        ["🌙 Dark Slate Theme (Recommended)", "☀️ Light Clean Theme"],
+        index=0 if st.session_state.dark_mode else 1,
+        horizontal=True,
+        key="settings_theme_radio"
+    )
+    is_dark = (theme_choice == "🌙 Dark Slate Theme (Recommended)")
+    if is_dark != st.session_state.dark_mode:
+        st.session_state.dark_mode = is_dark
+        st.rerun()
 
     st.markdown("---")
+
 
     st.subheader("2. Backend Model & Google Drive Status")
     st.write("This application supports plug-and-play connection to your Google Drive model weights.")

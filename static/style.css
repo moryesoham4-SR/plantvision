@@ -69,6 +69,26 @@ div.stDownloadButton > button:hover {
     stroke: #ffffff !important;
 }
 
+/* High-Contrast Toggle Switch Styling */
+div[data-testid="stToggle"] div[role="switch"] {
+    background-color: #cbd5e1 !important;
+    border: 2px solid #94a3b8 !important;
+}
+div[data-testid="stToggle"] div[role="switch"][aria-checked="true"] {
+    background-color: #059669 !important;
+    border-color: #047857 !important;
+}
+div[data-testid="stToggle"] div[role="switch"] div {
+    background-color: #ffffff !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+}
+div[data-testid="stToggle"] label,
+div[data-testid="stToggle"] p,
+div[data-testid="stToggle"] span {
+    font-weight: 600 !important;
+}
+
+
 
 /* Diagnosis Severity Boxes */
 .diagnosis-box {

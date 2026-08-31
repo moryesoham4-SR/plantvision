@@ -78,12 +78,23 @@ if not st.session_state.dark_mode:
         border-radius: 1rem !important;
         padding: 1.5rem !important;
     }
-    div[data-testid="stTextInput"] input, div[data-testid="stSelectbox"] div, div[data-testid="stFileUploader"] section {
+    div[data-testid="stTextInput"] input {
         background-color: #FFFFFF !important;
         color: #0F172A !important;
-        border-color: #CBD5E1 !important;
+        border: 1px solid #CBD5E1 !important;
     }
-    div[data-testid="stFileUploader"] section small {
+    div[data-baseweb="select"] > div {
+        background-color: #FFFFFF !important;
+        border: 1px solid #CBD5E1 !important;
+    }
+    div[data-baseweb="select"] span, div[data-baseweb="select"] div {
+        color: #0F172A !important;
+    }
+    div[data-testid="stFileUploader"] section {
+        background-color: #FFFFFF !important;
+        border: 1px dashed #CBD5E1 !important;
+    }
+    div[data-testid="stFileUploader"] span, div[data-testid="stFileUploader"] small {
         color: #64748B !important;
     }
     div[data-testid="stTabs"] button[role="tab"] {
@@ -93,6 +104,7 @@ if not st.session_state.dark_mode:
         color: #059669 !important;
         border-bottom-color: #059669 !important;
     }
+
     .kpi-card {
         background-color: #FFFFFF !important;
         border-color: #E2E8F0 !important;

@@ -13,11 +13,40 @@
     font-weight: 800;
 }
 .main-header p {
-    color: #d1fae5;
+    color: #d1fae5 !important;
     margin: 0;
     font-size: 0.95rem;
 }
 
+/* Universal Button Styling */
+div.stButton > button {
+    background-color: #059669 !important;
+    color: #ffffff !important;
+    border-radius: 0.5rem !important;
+    font-weight: 600 !important;
+    border: none !important;
+    padding: 0.5rem 1rem !important;
+    transition: all 0.2s ease-in-out !important;
+}
+div.stButton > button:hover {
+    background-color: #047857 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3) !important;
+}
+div.stDownloadButton > button {
+    background-color: #059669 !important;
+    color: #ffffff !important;
+    border-radius: 0.5rem !important;
+    font-weight: 600 !important;
+    border: none !important;
+    padding: 0.5rem 1rem !important;
+}
+div.stDownloadButton > button:hover {
+    background-color: #047857 !important;
+    color: #ffffff !important;
+}
+
+/* Diagnosis Severity Boxes */
 .diagnosis-box {
     padding: 1.5rem;
     border-radius: 0.75rem;
@@ -81,6 +110,7 @@
     text-transform: uppercase;
     margin-top: 0.25rem;
 }
+
 
 
 

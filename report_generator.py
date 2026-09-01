@@ -24,6 +24,12 @@ class PlantVisionPDF(FPDF):
         self.set_text_color(148, 163, 184)
         self.cell(0, 10, f"PlantVision AI Report | Page {self.page_no()}", align="C")
 
+def _clean_str(text: Any) -> str:
+    """Safely encodes strings to latin-1 compatible characters for FPDF."""
+    if text is None:
+        return ""
+    return str(text).encode("latin-1", "replace").decode("latin-1")
+
 def generate_pdf_report(diagnosis_result: Dict[str, Any], image_path: Optional[str] = None) -> bytes:
     pdf = PlantVisionPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -32,11 +38,11 @@ def generate_pdf_report(diagnosis_result: Dict[str, Any], image_path: Optional[s
     # Meta Info Section
     pdf.set_font("Helvetica", "B", 11)
     pdf.set_text_color(15, 23, 42)
-    pdf.cell(95, 6, f"Target Plant: {diagnosis_result.get('plant_name', 'N/A')}", ln=False)
+    pdf.cell(95, 6, f"Target Plant: {_clean_str(diagnosis_result.get('plant_name', 'N/A'))}", ln=False)
     pdf.cell(95, 6, f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}", ln=True)
 
-    pdf.cell(95, 6, f"Scientific Name: {diagnosis_result.get('scientific_name', 'N/A')}", ln=False)
-    pdf.cell(95, 6, f"Confidence Score: {diagnosis_result.get('confidence_percent', 'N/A')}", ln=True)
+    pdf.cell(95, 6, f"Scientific Name: {_clean_str(diagnosis_result.get('scientific_name', 'N/A'))}", ln=False)
+    pdf.cell(95, 6, f"Confidence Score: {_clean_str(diagnosis_result.get('confidence_percent', 'N/A'))}", ln=True)
     pdf.ln(4)
 
     # Diagnosis Banner Box
@@ -53,18 +59,19 @@ def generate_pdf_report(diagnosis_result: Dict[str, Any], image_path: Optional[s
         pdf.set_fill_color(254, 243, 199)
         pdf.set_text_color(146, 64, 14)
 
-    pdf.rect(10, pdf.get_y(), 190, 18, "F")
+    box_y = pdf.get_y()
+    pdf.rect(10, box_y, 190, 18, "F")
     pdf.set_font("Helvetica", "B", 14)
-    pdf.cell(0, 10, f"Diagnosis: {diagnosis_result.get('predicted_disease', 'N/A')}", ln=True, align="L")
+    pdf.cell(0, 10, f"Diagnosis: {_clean_str(diagnosis_result.get('predicted_disease', 'N/A'))}", ln=True, align="L")
     pdf.set_font("Helvetica", "I", 9)
-    pdf.cell(0, 6, f"Severity: {severity}  |  Pathogen: {diagnosis_result.get('pathogen', 'N/A')}", ln=True, align="L")
+    pdf.cell(0, 6, f"Severity: {severity}  |  Pathogen: {_clean_str(diagnosis_result.get('pathogen', 'N/A'))}", ln=True, align="L")
     pdf.ln(6)
 
     # Image thumbnail if valid
     if image_path and os.path.exists(image_path):
         try:
             current_y = pdf.get_y()
-            pdf.image(image_path, x=145, y=current_y, w=45)
+            pdf.image(image_path, x=150, y=current_y, w=40)
         except Exception:
             pass
 
@@ -77,9 +84,8 @@ def generate_pdf_report(diagnosis_result: Dict[str, Any], image_path: Optional[s
 
     symptoms = diagnosis_result.get("symptoms", [])
     for sym in symptoms:
-        pdf.cell(5, 5, chr(149), ln=False)
-        pdf.multi_cell(125, 5, f" {sym}")
-    pdf.ln(4)
+        pdf.multi_cell(0, 6, f"-  {_clean_str(sym)}")
+    pdf.ln(3)
 
     # Treatment Plans
     remedies = diagnosis_result.get("remedies", {})
@@ -91,9 +97,8 @@ def generate_pdf_report(diagnosis_result: Dict[str, Any], image_path: Optional[s
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(51, 65, 85)
     for org in remedies.get("organic", []):
-        pdf.cell(5, 5, chr(149), ln=False)
-        pdf.multi_cell(0, 5, f" {org}")
-    pdf.ln(4)
+        pdf.multi_cell(0, 6, f"-  {_clean_str(org)}")
+    pdf.ln(3)
 
     # Chemical Treatments
     pdf.set_font("Helvetica", "B", 12)
@@ -102,9 +107,8 @@ def generate_pdf_report(diagnosis_result: Dict[str, Any], image_path: Optional[s
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(51, 65, 85)
     for chem in remedies.get("chemical", []):
-        pdf.cell(5, 5, chr(149), ln=False)
-        pdf.multi_cell(0, 5, f" {chem}")
-    pdf.ln(4)
+        pdf.multi_cell(0, 6, f"-  {_clean_str(chem)}")
+    pdf.ln(3)
 
     # Preventative Measures
     pdf.set_font("Helvetica", "B", 12)
@@ -113,10 +117,11 @@ def generate_pdf_report(diagnosis_result: Dict[str, Any], image_path: Optional[s
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(51, 65, 85)
     for prev in remedies.get("prevention", []):
-        pdf.cell(5, 5, chr(149), ln=False)
-        pdf.multi_cell(0, 5, f" {prev}")
+        pdf.multi_cell(0, 6, f"-  {_clean_str(prev)}")
 
-    pdf_buffer = io.BytesIO()
-    pdf_bytes = pdf.output(dest="S").encode("latin-1")
-    return pdf_bytes
+    out = pdf.output()
+    if isinstance(out, (bytes, bytearray)):
+        return bytes(out)
+    return str(out).encode("latin-1")
+
 

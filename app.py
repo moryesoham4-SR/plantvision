@@ -682,14 +682,44 @@ elif selected_page == "⚙️ Settings & Info":
     st.markdown("---")
 
 
-    st.subheader("2. Backend Model & Google Drive Status")
-    st.write("This application supports plug-and-play connection to your Google Drive model weights.")
-    
-    st.markdown(f"""
-    - **Potato Model File:** `{config.PLANTS['potato']['model_file']}` (Drive ID: `{config.PLANTS['potato']['drive_file_id']}`)
-    - **Tomato Model File:** `{config.PLANTS['tomato']['model_file']}` (Drive ID: `{config.PLANTS['tomato']['drive_file_id']}`)
-    - **Apple Model File:** `{config.PLANTS['apple']['model_file']}` (Drive ID: `{config.PLANTS['apple']['drive_file_id']}`)
-    """)
+    st.subheader("2. 🤖 Connect Google Drive Model Weights")
+    st.write("Connect trained Deep Learning model weights (`.keras` or `.h5`) directly from your Google Drive folder.")
+
+    with st.expander("🔗 Configure Google Drive File Links / IDs", expanded=True):
+        st.markdown(f"**Folder:** [Plant Disease Detection Google Drive](https://drive.google.com/drive/u/0/folders/1ZYQxCLsTL5JiHX2EfX-7FljYZHmL_t-P)")
+        
+        c_p1, c_p2 = st.columns(2)
+        with c_p1:
+            potato_input = st.text_input("🥔 Potato Model (Link or File ID)", value=config.PLANTS["potato"].get("drive_file_id", ""), placeholder="e.g. 1ZYQxCLsTL5JiHX2EfX-7FljYZHmL_t-P or https://drive.google.com/file/d/...")
+        with c_p2:
+            tomato_input = st.text_input("🍅 Tomato Model (Link or File ID)", value=config.PLANTS["tomato"].get("drive_file_id", ""), placeholder="e.g. https://drive.google.com/file/d/...")
+
+        if st.button("⚡ Test & Download Weights from Drive"):
+            from models.model_loader import download_from_google_drive, extract_file_id
+            
+            p_id = extract_file_id(potato_input)
+            t_id = extract_file_id(tomato_input)
+
+            if p_id:
+                config.PLANTS["potato"]["drive_file_id"] = p_id
+                with st.spinner("Downloading Potato model weights..."):
+                    p_path = config.MODELS_DIR / config.PLANTS["potato"]["model_file"]
+                    if download_from_google_drive(p_id, p_path):
+                        st.success("✅ Potato model weights synced and downloaded successfully!")
+                    else:
+                        st.warning("⚠️ Potato model download attempted. Ensure the Google Drive file is set to 'Anyone with the link can view'.")
+
+            if t_id:
+                config.PLANTS["tomato"]["drive_file_id"] = t_id
+                with st.spinner("Downloading Tomato model weights..."):
+                    t_path = config.MODELS_DIR / config.PLANTS["tomato"]["model_file"]
+                    if download_from_google_drive(t_id, t_path):
+                        st.success("✅ Tomato model weights synced and downloaded successfully!")
+                    else:
+                        st.warning("⚠️ Tomato model download attempted. Ensure the Google Drive file is set to 'Anyone with the link can view'.")
+
+    st.markdown("---")
+
     
     st.subheader("3. Input Preprocessing Configuration")
     st.markdown("""

@@ -16,12 +16,17 @@ for directory in [DATA_DIR, MODELS_DIR, UPLOAD_DIR, STATIC_DIR, SAMPLES_DIR]:
 # Database Config
 DATABASE_PATH = BASE_DIR / "plantvision.db"
 
+# Supabase Cloud Database Config
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://ypytalpbuzzutxrspmje.supabase.co")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlweXRhbHBidXp6dXR4cnNwbWplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwOTkyNTAsImV4cCI6MjEwMzY3NTI1MH0.PLKOAJmwz_x0ZmMANUi6Ser811WSP7b4bUNQy_2NWOA")
+
 # Image Preprocessing Settings
 IMAGE_TARGET_SIZE = (224, 224)
 IMAGE_CHANNELS = 3
 
 # Inference Switch
 USE_MOCK = os.getenv("USE_MOCK", "True").lower() in ("true", "1", "yes")
+
 
 # Plant and Model Registry
 PLANTS = {

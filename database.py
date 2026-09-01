@@ -1,8 +1,28 @@
 import sqlite3
 import json
+import requests
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 import config
+
+def _get_supabase_headers():
+    return {
+        "apikey": config.SUPABASE_KEY,
+        "Authorization": f"Bearer {config.SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation"
+    }
+
+def _supabase_request(method: str, endpoint: str, data: dict = None, params: dict = None):
+    if not config.SUPABASE_URL or not config.SUPABASE_KEY:
+        return None
+    url = f"{config.SUPABASE_URL.rstrip('/')}/rest/v1/{endpoint}"
+    headers = _get_supabase_headers()
+    try:
+        response = requests.request(method, url, json=data, params=params, headers=headers, timeout=4)
+        return response
+    except Exception:
+        return None
 
 def get_connection():
     conn = sqlite3.connect(config.DATABASE_PATH)
@@ -57,13 +77,50 @@ def init_db():
     conn.close()
 
 def register_user(username: str, full_name: str, email: str, password_hash: str) -> tuple[bool, Optional[int], str]:
+    clean_user = username.strip().lower()
+    clean_email = email.strip().lower()
+    clean_name = full_name.strip()
+
+    # 1. Try Supabase Cloud Database First (Permanent persistence)
+    sup_res = _supabase_request("POST", "users", data={
+        "username": clean_user,
+        "full_name": clean_name,
+        "email": clean_email,
+        "password_hash": password_hash
+    })
+    
+    if sup_res is not None:
+        if sup_res.status_code in (200, 201):
+            try:
+                res_data = sup_res.json()
+                if isinstance(res_data, list) and len(res_data) > 0:
+                    sup_user_id = res_data[0].get("id")
+                    # Also mirror in local SQLite
+                    try:
+                        conn = get_connection()
+                        cursor = conn.cursor()
+                        cursor.execute("""
+                            INSERT OR REPLACE INTO users (id, username, full_name, email, password_hash)
+                            VALUES (?, ?, ?, ?, ?)
+                        """, (sup_user_id, clean_user, clean_name, clean_email, password_hash))
+                        conn.commit()
+                        conn.close()
+                    except Exception:
+                        pass
+                    return True, sup_user_id, "Account registered successfully in Supabase Cloud!"
+            except Exception:
+                pass
+        elif sup_res.status_code == 409:
+            return False, None, "Username or email is already registered."
+
+    # 2. Local SQLite Fallback
     conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
             INSERT INTO users (username, full_name, email, password_hash)
             VALUES (?, ?, ?, ?)
-        """, (username.strip().lower(), full_name.strip(), email.strip().lower(), password_hash))
+        """, (clean_user, clean_name, clean_email, password_hash))
         conn.commit()
         user_id = cursor.lastrowid
         return True, user_id, "User registered successfully."
@@ -77,9 +134,32 @@ def register_user(username: str, full_name: str, email: str, password_hash: str)
         conn.close()
 
 def verify_user_credentials(username_or_email: str, password_hash: str) -> tuple[bool, Optional[Dict[str, Any]], str]:
+    cleaned = username_or_email.strip().lower()
+
+    # 1. Check Supabase Cloud Database First
+    sup_res = _supabase_request("GET", "users", params={"or": f"(username.eq.{cleaned},email.eq.{cleaned})"})
+    if sup_res is not None and sup_res.status_code == 200:
+        try:
+            records = sup_res.json()
+            if isinstance(records, list) and len(records) > 0:
+                row = records[0]
+                if row.get("password_hash") == password_hash:
+                    user_data = {
+                        "id": row.get("id"),
+                        "username": row.get("username"),
+                        "full_name": row.get("full_name"),
+                        "email": row.get("email"),
+                        "created_at": row.get("created_at")
+                    }
+                    return True, user_data, "Login successful!"
+                else:
+                    return False, None, "Incorrect password. Please verify and try again."
+        except Exception:
+            pass
+
+    # 2. Check Local SQLite Fallback
     conn = get_connection()
     cursor = conn.cursor()
-    cleaned = username_or_email.strip().lower()
     cursor.execute("""
         SELECT id, username, full_name, email, password_hash, created_at
         FROM users
@@ -89,7 +169,7 @@ def verify_user_credentials(username_or_email: str, password_hash: str) -> tuple
     conn.close()
     
     if not row:
-        return False, None, "Account not found for this username or email. If the server recently restarted, please click 'Create New Account' below to register."
+        return False, None, "Account not found for this username or email. Please click 'Create New Account' below to register."
     
     if row["password_hash"] != password_hash:
         return False, None, "Incorrect password. Please verify and try again."
@@ -103,6 +183,33 @@ def verify_user_credentials(username_or_email: str, password_hash: str) -> tuple
     }
     return True, user_data, "Login successful!"
 
+def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
+    # 1. Try Supabase
+    sup_res = _supabase_request("GET", "users", params={"id": f"eq.{user_id}"})
+    if sup_res is not None and sup_res.status_code == 200:
+        try:
+            records = sup_res.json()
+            if isinstance(records, list) and len(records) > 0:
+                row = records[0]
+                return {
+                    "id": row.get("id"),
+                    "username": row.get("username"),
+                    "full_name": row.get("full_name"),
+                    "email": row.get("email"),
+                    "created_at": row.get("created_at")
+                }
+        except Exception:
+            pass
+
+    # 2. Fallback SQLite
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, username, full_name, email, created_at FROM users WHERE id = ?", (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    return None
 
 def save_scan(
     user_id: int,
@@ -115,6 +222,32 @@ def save_scan(
     symptoms: List[str],
     remedies: Dict[str, List[str]]
 ) -> int:
+    symptoms_str = json.dumps(symptoms)
+    remedies_str = json.dumps(remedies)
+
+    # 1. Try Supabase Cloud
+    scan_payload = {
+        "user_id": user_id,
+        "plant": plant,
+        "disease": disease,
+        "confidence": float(confidence),
+        "severity": severity,
+        "is_healthy": bool(is_healthy),
+        "image_path": str(image_path),
+        "symptoms_json": symptoms_str,
+        "remedies_json": remedies_str
+    }
+    sup_res = _supabase_request("POST", "scans", data=scan_payload)
+    sup_scan_id = None
+    if sup_res is not None and sup_res.status_code in (200, 201):
+        try:
+            records = sup_res.json()
+            if isinstance(records, list) and len(records) > 0:
+                sup_scan_id = records[0].get("id")
+        except Exception:
+            pass
+
+    # 2. Always persist to SQLite
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -131,13 +264,13 @@ def save_scan(
         severity,
         1 if is_healthy else 0,
         str(image_path),
-        json.dumps(symptoms),
-        json.dumps(remedies)
+        symptoms_str,
+        remedies_str
     ))
     conn.commit()
-    scan_id = cursor.lastrowid
+    sqlite_id = cursor.lastrowid
     conn.close()
-    return scan_id
+    return sup_scan_id or sqlite_id
 
 def get_user_scans(
     user_id: int,
@@ -145,6 +278,29 @@ def get_user_scans(
     status_filter: Optional[str] = None,
     search_term: Optional[str] = None
 ) -> List[Dict[str, Any]]:
+    # 1. Try Supabase
+    params = {"user_id": f"eq.{user_id}", "order": "timestamp.desc"}
+    if plant_filter and plant_filter.lower() != "all":
+        params["plant"] = f"ilike.{plant_filter.strip()}"
+    if status_filter:
+        if status_filter.lower() == "healthy":
+            params["is_healthy"] = "eq.true"
+        elif status_filter.lower() == "diseased":
+            params["is_healthy"] = "eq.false"
+
+    sup_res = _supabase_request("GET", "scans", params=params)
+    if sup_res is not None and sup_res.status_code == 200:
+        try:
+            records = sup_res.json()
+            if isinstance(records, list):
+                if search_term:
+                    st_lower = search_term.lower()
+                    records = [r for r in records if st_lower in r.get("disease", "").lower() or st_lower in r.get("plant", "").lower()]
+                return records
+        except Exception:
+            pass
+
+    # 2. Fallback SQLite
     conn = get_connection()
     cursor = conn.cursor()
     query = "SELECT * FROM scans WHERE user_id = ?"
@@ -171,6 +327,10 @@ def get_user_scans(
     return [dict(r) for r in rows]
 
 def delete_scan(scan_id: int, user_id: int) -> bool:
+    # 1. Try Supabase
+    _supabase_request("DELETE", "scans", params={"id": f"eq.{scan_id}", "user_id": f"eq.{user_id}"})
+
+    # 2. SQLite
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM scans WHERE id = ? AND user_id = ?", (scan_id, user_id))
@@ -180,37 +340,20 @@ def delete_scan(scan_id: int, user_id: int) -> bool:
     return deleted
 
 def get_user_analytics(user_id: int) -> Dict[str, Any]:
-    conn = get_connection()
-    cursor = conn.cursor()
+    scans = get_user_scans(user_id)
+    total_scans = len(scans)
+    healthy_count = sum(1 for s in scans if s.get("is_healthy") in (1, True))
+    diseased_count = total_scans - healthy_count
 
-    cursor.execute("SELECT COUNT(*) FROM scans WHERE user_id = ?", (user_id,))
-    total_scans = cursor.fetchone()[0]
+    plant_counts = {}
+    disease_counts = {}
 
-    cursor.execute("SELECT COUNT(*) FROM scans WHERE user_id = ? AND is_healthy = 1", (user_id,))
-    healthy_count = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM scans WHERE user_id = ? AND is_healthy = 0", (user_id,))
-    diseased_count = cursor.fetchone()[0]
-
-    cursor.execute("""
-        SELECT plant, COUNT(*) as count
-        FROM scans
-        WHERE user_id = ?
-        GROUP BY plant
-    """, (user_id,))
-    plant_counts = {row["plant"]: row["count"] for row in cursor.fetchall()}
-
-    cursor.execute("""
-        SELECT disease, COUNT(*) as count
-        FROM scans
-        WHERE user_id = ? AND is_healthy = 0
-        GROUP BY disease
-        ORDER BY count DESC
-        LIMIT 10
-    """, (user_id,))
-    disease_counts = {row["disease"]: row["count"] for row in cursor.fetchall()}
-
-    conn.close()
+    for s in scans:
+        p = s.get("plant", "Unknown")
+        plant_counts[p] = plant_counts.get(p, 0) + 1
+        if not s.get("is_healthy"):
+            d = s.get("disease", "Unknown")
+            disease_counts[d] = disease_counts.get(d, 0) + 1
 
     return {
         "total_scans": total_scans,
@@ -220,14 +363,5 @@ def get_user_analytics(user_id: int) -> Dict[str, Any]:
         "disease_counts": disease_counts
     }
 
-def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, username, full_name, email, created_at FROM users WHERE id = ?", (user_id,))
-    row = cursor.fetchone()
-    conn.close()
-    if row:
-        return dict(row)
-    return None
 
 

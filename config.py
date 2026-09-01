@@ -36,7 +36,7 @@ PLANTS = {
         "icon": "🥔",
         "status": "Active",
         "model_file": "potato_model.keras",
-        "drive_file_id": "18_aAbCdefGhiJklMnoPqrStUvWxYz012",
+        "drive_file_id": "1uPPXXC90noUpibecudBMiw9RPht9wpCP",
         "classes": [
             "Early Blight",
             "Late Blight",
@@ -49,7 +49,7 @@ PLANTS = {
         "icon": "🍅",
         "status": "Active",
         "model_file": "tomato_model.keras",
-        "drive_file_id": "19_bCdEfGhiJklMnoPqrStUvWxYz345",
+        "drive_file_id": "1uPPXXC90noUpibecudBMiw9RPht9wpCP",
         "classes": [
             "Early Blight",
             "Late Blight",
@@ -57,6 +57,7 @@ PLANTS = {
             "Healthy"
         ]
     },
+
     "apple": {
         "name": "Apple",
         "scientific_name": "Malus domestica",

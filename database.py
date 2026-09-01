@@ -76,20 +76,33 @@ def register_user(username: str, full_name: str, email: str, password_hash: str)
     finally:
         conn.close()
 
-def verify_user_credentials(username_or_email: str, password_hash: str) -> Optional[Dict[str, Any]]:
+def verify_user_credentials(username_or_email: str, password_hash: str) -> tuple[bool, Optional[Dict[str, Any]], str]:
     conn = get_connection()
     cursor = conn.cursor()
     cleaned = username_or_email.strip().lower()
     cursor.execute("""
-        SELECT id, username, full_name, email, created_at
+        SELECT id, username, full_name, email, password_hash, created_at
         FROM users
-        WHERE (username = ? OR email = ?) AND password_hash = ?
-    """, (cleaned, cleaned, password_hash))
+        WHERE (username = ? OR email = ?)
+    """, (cleaned, cleaned))
     row = cursor.fetchone()
     conn.close()
-    if row:
-        return dict(row)
-    return None
+    
+    if not row:
+        return False, None, "Account not found for this username or email. If the server recently restarted, please click 'Create New Account' below to register."
+    
+    if row["password_hash"] != password_hash:
+        return False, None, "Incorrect password. Please verify and try again."
+        
+    user_data = {
+        "id": row["id"],
+        "username": row["username"],
+        "full_name": row["full_name"],
+        "email": row["email"],
+        "created_at": row["created_at"]
+    }
+    return True, user_data, "Login successful!"
+
 
 def save_scan(
     user_id: int,

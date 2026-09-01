@@ -3,7 +3,7 @@ import streamlit as st
 import database
 
 def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+    return hashlib.sha256(password.strip().encode("utf-8")).hexdigest()
 
 def init_auth_state():
     if "user" not in st.session_state:
@@ -12,13 +12,16 @@ def init_auth_state():
         st.session_state.authenticated = False
 
 def login(username_or_email: str, password: str) -> tuple[bool, str]:
+    if not username_or_email or not password:
+        return False, "Please enter both username/email and password."
     pwd_hash = hash_password(password)
-    user = database.verify_user_credentials(username_or_email, pwd_hash)
-    if user:
+    success, user, msg = database.verify_user_credentials(username_or_email, pwd_hash)
+    if success and user:
         st.session_state.user = user
         st.session_state.authenticated = True
-        return True, "Login successful!"
-    return False, "Invalid username/email or password."
+        return True, msg
+    return False, msg
+
 
 def set_user_session(user: dict):
     st.session_state.user = user

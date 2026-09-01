@@ -464,16 +464,20 @@ if selected_page == "🔬 Disease Scanner":
                 st.plotly_chart(fig, use_container_width=True)
                 
             # PDF Report Download
-            pdf_bytes = generate_pdf_report(res, st.session_state.get("current_img_path"))
-            st.download_button(
-                label="📄 Download Diagnostic PDF Report",
-                data=pdf_bytes,
-                file_name=f"PlantVision_Report_{res['plant_id']}_{res['predicted_disease'].replace(' ', '_')}.pdf",
-                mime="application/pdf",
-                use_container_width=True
-            )
+            try:
+                pdf_bytes = generate_pdf_report(res, st.session_state.get("current_img_path"))
+                st.download_button(
+                    label="📄 Download Diagnostic PDF Report",
+                    data=pdf_bytes,
+                    file_name=f"PlantVision_Report_{res['plant_id']}_{res['predicted_disease'].replace(' ', '_')}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
+            except Exception as e:
+                st.caption(f"PDF download temporarily unavailable ({e}).")
         else:
             st.info("Run diagnosis on the left to see the detection results and prescription recommendations.")
+
 
 # ----------------- PAGE 2: HISTORY -----------------
 elif selected_page == "📜 Scan History":

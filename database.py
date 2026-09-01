@@ -160,16 +160,28 @@ def register_user(username: str, full_name: str, email: str, raw_password: str) 
     import auth
     password_hash = auth.hash_password(raw_password)
 
-    # 1. Register with Supabase Native Auth (Encrypted Cloud Authentication)
-    sup_auth_ok, sup_user, sup_auth_msg = supabase_auth_signup(clean_email, raw_password, clean_name, clean_user)
-
-    # 2. Also register in Supabase public.users REST Table
-    _supabase_request("POST", "users", data={
+    # 1. Direct Insert to Supabase public.users Table
+    sup_res = _supabase_request("POST", "users", data={
         "username": clean_user,
         "full_name": clean_name,
         "email": clean_email,
         "password_hash": password_hash
     })
+    
+    sup_id = None
+    if sup_res is not None:
+        if sup_res.status_code in (200, 201):
+            try:
+                res_data = sup_res.json()
+                if isinstance(res_data, list) and len(res_data) > 0:
+                    sup_id = res_data[0].get("id")
+            except Exception:
+                pass
+        elif sup_res.status_code == 409:
+            return False, None, "Username or email is already registered in Supabase."
+
+    # 2. Also register in Supabase Auth backend
+    supabase_auth_signup(clean_email, raw_password, clean_name, clean_user)
 
     # 3. Mirror in local SQLite
     try:
@@ -185,25 +197,14 @@ def register_user(username: str, full_name: str, email: str, raw_password: str) 
     except Exception:
         local_id = 1
 
-    if sup_auth_ok and sup_user:
-        return True, sup_user["id"], "Account permanently registered in Supabase Cloud!"
-
-    if "already registered" in sup_auth_msg.lower() or "already exists" in sup_auth_msg.lower():
-        return False, None, "An account with this email is already registered in Supabase."
-
-    return True, local_id, "User registered successfully."
+    return True, sup_id or local_id, "User registered successfully in Supabase Cloud!"
 
 def verify_user_credentials(username_or_email: str, raw_password: str) -> tuple[bool, Optional[Dict[str, Any]], str]:
     cleaned = username_or_email.strip().lower()
     import auth
     password_hash = auth.hash_password(raw_password)
 
-    # 1. Try Supabase Native Auth Login First
-    sup_ok, sup_user, sup_msg = supabase_auth_login(cleaned, raw_password)
-    if sup_ok and sup_user:
-        return True, sup_user, "Login successful!"
-
-    # 2. Try Supabase REST Table
+    # 1. Check Supabase public.users Table
     sup_res = _supabase_request("GET", "users", params={"or": f"(username.eq.{cleaned},email.eq.{cleaned})"})
     if sup_res is not None and sup_res.status_code == 200:
         try:
@@ -223,6 +224,11 @@ def verify_user_credentials(username_or_email: str, raw_password: str) -> tuple[
                     return False, None, "Incorrect password. Please verify and try again."
         except Exception:
             pass
+
+    # 2. Check Supabase Auth API
+    sup_ok, sup_user, sup_msg = supabase_auth_login(cleaned, raw_password)
+    if sup_ok and sup_user:
+        return True, sup_user, "Login successful!"
 
     # 3. Check Local SQLite
     conn = get_connection()
@@ -249,6 +255,7 @@ def verify_user_credentials(username_or_email: str, raw_password: str) -> tuple[
         "created_at": row["created_at"]
     }
     return True, user_data, "Login successful!"
+
 
 
 def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:

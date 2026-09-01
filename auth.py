@@ -14,13 +14,12 @@ def init_auth_state():
 def login(username_or_email: str, password: str) -> tuple[bool, str]:
     if not username_or_email or not password:
         return False, "Please enter both username/email and password."
-    pwd_hash = hash_password(password)
-    success, user, msg = database.verify_user_credentials(username_or_email, pwd_hash)
+    success, user, msg = database.verify_user_credentials(username_or_email, password)
     if success and user:
-        st.session_state.user = user
-        st.session_state.authenticated = True
+        set_user_session(user)
         return True, msg
     return False, msg
+
 
 
 def set_user_session(user: dict):

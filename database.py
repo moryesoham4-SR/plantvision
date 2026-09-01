@@ -76,67 +76,134 @@ def init_db():
     conn.commit()
     conn.close()
 
-def register_user(username: str, full_name: str, email: str, password_hash: str) -> tuple[bool, Optional[int], str]:
+def supabase_auth_signup(email: str, password: str, full_name: str, username: str) -> tuple[bool, Optional[dict], str]:
+    if not config.SUPABASE_URL or not config.SUPABASE_KEY:
+        return False, None, "Supabase credentials missing."
+    url = f"{config.SUPABASE_URL.rstrip('/')}/auth/v1/signup"
+    headers = {
+        "apikey": config.SUPABASE_KEY,
+        "Content-Type": "application/json"
+    }
+    clean_email = email.strip().lower()
+    clean_user = username.strip().lower()
+    clean_name = full_name.strip()
+    payload = {
+        "email": clean_email,
+        "password": password.strip(),
+        "data": {
+            "full_name": clean_name,
+            "username": clean_user
+        }
+    }
+    try:
+        r = requests.post(url, json=payload, headers=headers, timeout=5)
+        if r.status_code in (200, 201):
+            data = r.json()
+            user_obj = data.get("user", data)
+            user_info = {
+                "id": user_obj.get("id"),
+                "email": clean_email,
+                "username": clean_user,
+                "full_name": clean_name,
+                "created_at": user_obj.get("created_at") or datetime.now().isoformat()
+            }
+            return True, user_info, "User registered in Supabase Cloud!"
+        else:
+            err_json = r.json() if r.content else {}
+            err = err_json.get("msg") or err_json.get("error_description") or err_json.get("message") or f"Status {r.status_code}"
+            return False, None, f"Supabase error: {err}"
+    except Exception as e:
+        return False, None, f"Supabase connection error: {e}"
+
+def supabase_auth_login(email_or_username: str, password: str) -> tuple[bool, Optional[dict], str]:
+    if not config.SUPABASE_URL or not config.SUPABASE_KEY:
+        return False, None, "Supabase credentials missing."
+    url = f"{config.SUPABASE_URL.rstrip('/')}/auth/v1/token?grant_type=password"
+    headers = {
+        "apikey": config.SUPABASE_KEY,
+        "Content-Type": "application/json"
+    }
+    cleaned = email_or_username.strip().lower()
+    candidate_emails = [cleaned]
+    if "@" not in cleaned:
+        # Also try default domain or query from users table
+        candidate_emails.append(f"{cleaned}@plantvision.ai")
+
+    for email_candidate in candidate_emails:
+        payload = {
+            "email": email_candidate,
+            "password": password.strip()
+        }
+        try:
+            r = requests.post(url, json=payload, headers=headers, timeout=4)
+            if r.status_code == 200:
+                data = r.json()
+                user_obj = data.get("user", {})
+                user_meta = user_obj.get("user_metadata", {})
+                user_info = {
+                    "id": user_obj.get("id"),
+                    "email": user_obj.get("email", email_candidate),
+                    "username": user_meta.get("username", cleaned),
+                    "full_name": user_meta.get("full_name", user_meta.get("name", "Farmer")),
+                    "created_at": user_obj.get("created_at")
+                }
+                return True, user_info, "Login successful via Supabase Cloud!"
+        except Exception:
+            pass
+
+    return False, None, "Invalid username/email or password."
+
+def register_user(username: str, full_name: str, email: str, raw_password: str) -> tuple[bool, Optional[Any], str]:
     clean_user = username.strip().lower()
     clean_email = email.strip().lower()
     clean_name = full_name.strip()
+    import auth
+    password_hash = auth.hash_password(raw_password)
 
-    # 1. Try Supabase Cloud Database First (Permanent persistence)
-    sup_res = _supabase_request("POST", "users", data={
+    # 1. Register with Supabase Native Auth (Encrypted Cloud Authentication)
+    sup_auth_ok, sup_user, sup_auth_msg = supabase_auth_signup(clean_email, raw_password, clean_name, clean_user)
+
+    # 2. Also register in Supabase public.users REST Table
+    _supabase_request("POST", "users", data={
         "username": clean_user,
         "full_name": clean_name,
         "email": clean_email,
         "password_hash": password_hash
     })
-    
-    if sup_res is not None:
-        if sup_res.status_code in (200, 201):
-            try:
-                res_data = sup_res.json()
-                if isinstance(res_data, list) and len(res_data) > 0:
-                    sup_user_id = res_data[0].get("id")
-                    # Also mirror in local SQLite
-                    try:
-                        conn = get_connection()
-                        cursor = conn.cursor()
-                        cursor.execute("""
-                            INSERT OR REPLACE INTO users (id, username, full_name, email, password_hash)
-                            VALUES (?, ?, ?, ?, ?)
-                        """, (sup_user_id, clean_user, clean_name, clean_email, password_hash))
-                        conn.commit()
-                        conn.close()
-                    except Exception:
-                        pass
-                    return True, sup_user_id, "Account registered successfully in Supabase Cloud!"
-            except Exception:
-                pass
-        elif sup_res.status_code == 409:
-            return False, None, "Username or email is already registered."
 
-    # 2. Local SQLite Fallback
-    conn = get_connection()
-    cursor = conn.cursor()
+    # 3. Mirror in local SQLite
     try:
+        conn = get_connection()
+        cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO users (username, full_name, email, password_hash)
+            INSERT OR REPLACE INTO users (username, full_name, email, password_hash)
             VALUES (?, ?, ?, ?)
         """, (clean_user, clean_name, clean_email, password_hash))
         conn.commit()
-        user_id = cursor.lastrowid
-        return True, user_id, "User registered successfully."
-    except sqlite3.IntegrityError as e:
-        if "users.username" in str(e):
-            return False, None, "Username is already taken."
-        elif "users.email" in str(e):
-            return False, None, "Email is already registered."
-        return False, None, f"Database error: {str(e)}"
-    finally:
+        local_id = cursor.lastrowid
         conn.close()
+    except Exception:
+        local_id = 1
 
-def verify_user_credentials(username_or_email: str, password_hash: str) -> tuple[bool, Optional[Dict[str, Any]], str]:
+    if sup_auth_ok and sup_user:
+        return True, sup_user["id"], "Account permanently registered in Supabase Cloud!"
+
+    if "already registered" in sup_auth_msg.lower() or "already exists" in sup_auth_msg.lower():
+        return False, None, "An account with this email is already registered in Supabase."
+
+    return True, local_id, "User registered successfully."
+
+def verify_user_credentials(username_or_email: str, raw_password: str) -> tuple[bool, Optional[Dict[str, Any]], str]:
     cleaned = username_or_email.strip().lower()
+    import auth
+    password_hash = auth.hash_password(raw_password)
 
-    # 1. Check Supabase Cloud Database First
+    # 1. Try Supabase Native Auth Login First
+    sup_ok, sup_user, sup_msg = supabase_auth_login(cleaned, raw_password)
+    if sup_ok and sup_user:
+        return True, sup_user, "Login successful!"
+
+    # 2. Try Supabase REST Table
     sup_res = _supabase_request("GET", "users", params={"or": f"(username.eq.{cleaned},email.eq.{cleaned})"})
     if sup_res is not None and sup_res.status_code == 200:
         try:
@@ -157,7 +224,7 @@ def verify_user_credentials(username_or_email: str, password_hash: str) -> tuple
         except Exception:
             pass
 
-    # 2. Check Local SQLite Fallback
+    # 3. Check Local SQLite
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -182,6 +249,7 @@ def verify_user_credentials(username_or_email: str, password_hash: str) -> tuple
         "created_at": row["created_at"]
     }
     return True, user_data, "Login successful!"
+
 
 def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
     # 1. Try Supabase

@@ -232,15 +232,20 @@ if not auth.is_authenticated():
                     elif len(reg_password) < 6:
                         st.error("Password must be at least 6 characters long.")
                     else:
-                        pwd_hash = auth.hash_password(reg_password)
-                        success, uid, msg = database.register_user(reg_username, reg_name, reg_email, pwd_hash)
+                        success, uid, msg = database.register_user(reg_username, reg_name, reg_email, reg_password)
                         if success and uid:
                             # Instant Auto-Login on Registration
-                            auth.login_by_id(uid)
-                            st.success(f"🎉 Welcome aboard, {reg_name}! Your account is created and you are now logged in.")
+                            auth.set_user_session({
+                                "id": uid,
+                                "username": reg_username.strip().lower(),
+                                "full_name": reg_name.strip(),
+                                "email": reg_email.strip().lower()
+                            })
+                            st.success(f"🎉 Welcome aboard, {reg_name}! Your account is created in Supabase Cloud and you are logged in.")
                             st.rerun()
                         else:
                             st.error(msg)
+
 
             st.markdown("---")
             st.markdown("<p style='text-align: center; color: #94a3b8;'>Already registered?</p>", unsafe_allow_html=True)

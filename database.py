@@ -204,31 +204,50 @@ def verify_user_credentials(username_or_email: str, raw_password: str) -> tuple[
     import auth
     password_hash = auth.hash_password(raw_password)
 
-    # 1. Check Supabase public.users Table
-    sup_res = _supabase_request("GET", "users", params={"or": f"(username.eq.{cleaned},email.eq.{cleaned})"})
-    if sup_res is not None and sup_res.status_code == 200:
+    # 1. Check Supabase public.users Table with clean ilike queries
+    user_record = None
+    
+    # Check by email
+    res_email = _supabase_request("GET", "users", params={"email": f"ilike.{cleaned}"})
+    if res_email is not None and res_email.status_code == 200:
         try:
-            records = sup_res.json()
+            records = res_email.json()
             if isinstance(records, list) and len(records) > 0:
-                row = records[0]
-                if row.get("password_hash") == password_hash:
-                    user_data = {
-                        "id": row.get("id"),
-                        "username": row.get("username"),
-                        "full_name": row.get("full_name"),
-                        "email": row.get("email"),
-                        "created_at": row.get("created_at")
-                    }
-                    return True, user_data, "Login successful!"
-                else:
-                    return False, None, "Incorrect password. Please verify and try again."
+                user_record = records[0]
         except Exception:
             pass
+
+    # Check by username if not found by email
+    if not user_record:
+        res_user = _supabase_request("GET", "users", params={"username": f"ilike.{cleaned}"})
+        if res_user is not None and res_user.status_code == 200:
+            try:
+                records = res_user.json()
+                if isinstance(records, list) and len(records) > 0:
+                    user_record = records[0]
+            except Exception:
+                pass
+
+    if user_record:
+        stored_hash = user_record.get("password_hash", "")
+        # Match SHA-256 hash or plain text
+        if stored_hash == password_hash or stored_hash == raw_password.strip():
+            user_data = {
+                "id": user_record.get("id"),
+                "username": user_record.get("username"),
+                "full_name": user_record.get("full_name"),
+                "email": user_record.get("email"),
+                "created_at": user_record.get("created_at")
+            }
+            return True, user_data, "Login successful!"
+        else:
+            return False, None, "Incorrect password. Please verify and try again."
 
     # 2. Check Supabase Auth API
     sup_ok, sup_user, sup_msg = supabase_auth_login(cleaned, raw_password)
     if sup_ok and sup_user:
         return True, sup_user, "Login successful!"
+
 
     # 3. Check Local SQLite
     conn = get_connection()

@@ -1,9 +1,32 @@
 import sqlite3
 import json
 import requests
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List, Dict, Any
 import config
+
+# Indian Standard Time (IST) Timezone (UTC +05:30)
+IST = timezone(timedelta(hours=5, minutes=30))
+
+def get_ist_now() -> datetime:
+    return datetime.now(IST)
+
+def get_ist_now_str(fmt: str = "%Y-%m-%d %H:%M:%S") -> str:
+    return datetime.now(IST).strftime(fmt)
+
+def format_timestamp_ist(ts_str: Any) -> str:
+    """Converts a timestamp string or object to human-friendly IST format."""
+    if not ts_str:
+        return ""
+    try:
+        ts_clean = str(ts_str).replace("Z", "+00:00")
+        if "+" in ts_clean or "-" in ts_clean[10:]:
+            dt = datetime.fromisoformat(ts_clean).astimezone(IST)
+        else:
+            dt = datetime.fromisoformat(ts_clean).replace(tzinfo=IST)
+        return dt.strftime("%d %b %Y, %I:%M %p IST")
+    except Exception:
+        return f"{ts_str} (IST)"
 
 def _get_supabase_headers():
     return {
@@ -12,6 +35,7 @@ def _get_supabase_headers():
         "Content-Type": "application/json",
         "Prefer": "return=representation"
     }
+
 
 def _supabase_request(method: str, endpoint: str, data: dict = None, params: dict = None):
     if not config.SUPABASE_URL or not config.SUPABASE_KEY:
@@ -323,6 +347,8 @@ def save_scan(
     symptoms_str = json.dumps(symptoms)
     remedies_str = json.dumps(remedies)
 
+    ist_time_str = get_ist_now_str()
+
     # 1. Try Supabase Cloud
     scan_payload = {
         "user_id": user_id,
@@ -333,7 +359,8 @@ def save_scan(
         "is_healthy": bool(is_healthy),
         "image_path": str(image_path),
         "symptoms_json": symptoms_str,
-        "remedies_json": remedies_str
+        "remedies_json": remedies_str,
+        "timestamp": ist_time_str
     }
     sup_res = _supabase_request("POST", "scans", data=scan_payload)
     sup_scan_id = None
@@ -351,9 +378,9 @@ def save_scan(
     cursor.execute("""
         INSERT INTO scans (
             user_id, plant, disease, confidence, severity, is_healthy,
-            image_path, symptoms_json, remedies_json
+            image_path, symptoms_json, remedies_json, timestamp
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         user_id,
         plant,
@@ -363,12 +390,14 @@ def save_scan(
         1 if is_healthy else 0,
         str(image_path),
         symptoms_str,
-        remedies_str
+        remedies_str,
+        ist_time_str
     ))
     conn.commit()
     sqlite_id = cursor.lastrowid
     conn.close()
     return sup_scan_id or sqlite_id
+
 
 def get_user_scans(
     user_id: int,

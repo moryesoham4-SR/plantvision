@@ -42,12 +42,17 @@ def generate_pdf_report(diagnosis_result: Dict[str, Any], image_path: Optional[s
         pdf.add_page()
         width = pdf.epw
 
+        from datetime import timezone, timedelta
+        ist_zone = timezone(timedelta(hours=5, minutes=30))
+        ist_date_str = datetime.now(ist_zone).strftime("%d %b %Y, %I:%M %p IST")
+
         # Meta Info Section
         pdf.set_x(10)
         pdf.set_font("Helvetica", "B", 11)
         pdf.set_text_color(15, 23, 42)
         pdf.cell(95, 6, f"Target Plant: {_clean_str(diagnosis_result.get('plant_name', 'N/A'))}", ln=False)
-        pdf.cell(95, 6, f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}", ln=True)
+        pdf.cell(95, 6, f"Date: {ist_date_str}", ln=True)
+
 
         pdf.set_x(10)
         pdf.cell(95, 6, f"Scientific Name: {_clean_str(diagnosis_result.get('scientific_name', 'N/A'))}", ln=False)

@@ -519,8 +519,10 @@ elif selected_page == "📜 Scan History":
     else:
         st.write(f"Found **{len(scans)}** scan records.")
         for scan in scans:
-            with st.expander(f"🗓️ {scan['timestamp']} — {scan['plant']}: **{scan['disease']}** ({scan['confidence']*100:.1f}% Confidence)"):
+            formatted_date = database.format_timestamp_ist(scan.get("timestamp"))
+            with st.expander(f"🗓️ {formatted_date} — {scan['plant']}: **{scan['disease']}** ({scan['confidence']*100:.1f}% Confidence)"):
                 h_col1, h_col2 = st.columns([1, 2])
+
                 with h_col1:
                     if os.path.exists(scan["image_path"]):
                         try:
@@ -749,13 +751,15 @@ elif selected_page == "⚙️ Settings & Info":
     """)
     
     st.subheader("4. Account Information")
+    created_at_ist = database.format_timestamp_ist(user.get('created_at'))
     st.markdown(f"""
     - **User ID:** `{user['id']}`
     - **Full Name:** **{user['full_name']}**
     - **Username:** `@{user['username']}`
     - **Email:** `{user['email']}`
-    - **Member Since:** `{user['created_at']}`
+    - **Member Since:** `{created_at_ist}`
     """)
+
 
 
 

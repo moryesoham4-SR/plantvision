@@ -312,22 +312,32 @@ if selected_page == "🔬 Disease Scanner":
         )
         
         st.markdown("#### 2. Input Leaf Image")
-        input_mode = st.radio("Choose Input Method:", ["📁 Upload File", "⚡ 1-Click Test Samples"], horizontal=True)
+        input_mode = st.radio(
+            "Choose Input Method:",
+            ["📁 Upload Image File", "📷 Live Camera Snap", "⚡ 1-Click Test Samples"],
+            horizontal=True
+        )
         
         uploaded_image = None
         sample_name = ""
         
-        if input_mode == "📁 Upload File":
+        if input_mode == "📁 Upload Image File":
             file_upload = st.file_uploader(
-                "Upload leaf photo (JPG, JPEG, PNG):",
-                type=["jpg", "jpeg", "png"],
-                help="Image will be automatically normalized to 224x224 RGB."
+                "Upload leaf photo (JPG, JPEG, PNG, WEBP, BMP, TIFF, GIF):",
+                type=["jpg", "jpeg", "png", "webp", "bmp", "tiff", "gif", "jfif"],
+                help="Supports all major image formats (JPEG, PNG, WebP, BMP, TIFF). Image will be automatically resized & normalized to 224x224 RGB."
             )
             if file_upload is not None:
                 uploaded_image = file_upload
                 sample_name = file_upload.name
+        elif input_mode == "📷 Live Camera Snap":
+            cam_upload = st.camera_input("Take a clear photo of the plant leaf:")
+            if cam_upload is not None:
+                uploaded_image = cam_upload
+                sample_name = "live_camera_leaf.jpg"
         else:
             # 1-Click Samples
+
             sample_choices = {
                 "potato": [
                     ("Early Blight", "potato_early_blight.jpg"),

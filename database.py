@@ -229,9 +229,12 @@ def verify_user_credentials(username_or_email: str, raw_password: str) -> tuple[
                 pass
 
     if user_record:
-        stored_hash = user_record.get("password_hash", "")
-        # Match SHA-256 hash or plain text
-        if stored_hash == password_hash or stored_hash == raw_password.strip():
+        stored_hash = str(user_record.get("password_hash", "")).strip()
+        input_hash = str(password_hash).strip()
+        input_raw = str(raw_password).strip()
+
+        # Match SHA-256 hash or plain text (type-safe string comparison)
+        if stored_hash and (stored_hash == input_hash or stored_hash == input_raw):
             user_data = {
                 "id": user_record.get("id"),
                 "username": user_record.get("username"),
@@ -242,6 +245,7 @@ def verify_user_credentials(username_or_email: str, raw_password: str) -> tuple[
             return True, user_data, "Login successful!"
         else:
             return False, None, "Incorrect password. Please verify and try again."
+
 
     # 2. Check Supabase Auth API
     sup_ok, sup_user, sup_msg = supabase_auth_login(cleaned, raw_password)

@@ -338,8 +338,10 @@ if selected_page == "🔬 Disease Scanner":
         scan_btn = False
 
         if selected_plant_id == "none":
+            st.session_state.current_result = None
             st.warning("🌱 **Selecting a target plant is compulsory.** Please choose **Potato** or **Tomato** from the dropdown above to enable the scanner.")
         elif selected_plant_id == "apple":
+            st.session_state.current_result = None
             st.info("🍎 **Apple Disease Model is Coming Soon ⏳**\n\nOur deep learning neural networks for Apple Scab, Black Rot, and Cedar Apple Rust are currently under active training.\n\nPlease select **🥔 Potato** or **🍅 Tomato** for instant live diagnosis.")
         else:
             st.markdown("#### 2. Input Leaf Image")
@@ -362,7 +364,7 @@ if selected_page == "🔬 Disease Scanner":
                 cam_upload = st.camera_input("Take a clear photo of the plant leaf:")
                 if cam_upload is not None:
                     uploaded_image = cam_upload
-                    sample_name = "live_camera_leaf.jpg"
+                    sample_name = f"live_camera_{cam_upload.size}.jpg"
             else:
                 # 1-Click Samples
                 sample_choices = {
@@ -394,6 +396,11 @@ if selected_page == "🔬 Disease Scanner":
                     # Synthetic sample preview
                     uploaded_image = Image.new("RGB", (300, 300), color=(46, 139, 87))
                     sample_name = selected_sample_file or "sample_leaf.jpg"
+            
+            # Reset stale diagnosis whenever image input source or file changes
+            img_fingerprint = f"{selected_plant_id}_{input_mode}_{sample_name}"
+            if st.session_state.get("last_analyzed_fingerprint") != img_fingerprint:
+                st.session_state.current_result = None
                     
             if uploaded_image is not None:
                 display_img, resized_img, tensor_input, meta = preprocess_image(uploaded_image)
@@ -402,8 +409,8 @@ if selected_page == "🔬 Disease Scanner":
                 # Leaf & Foliage Authenticity Check
                 is_leaf, leaf_msg, leaf_meta = validate_leaf_image(display_img)
                 if not is_leaf:
-                    st.warning(leaf_msg)
                     st.session_state.current_result = None
+                    st.warning(leaf_msg)
                     scan_btn = False
                 else:
                     st.success("🌿 Plant leaf verified. Ready for pathological diagnosis!")
@@ -452,6 +459,7 @@ if selected_page == "🔬 Disease Scanner":
                 )
                 
                 st.session_state.current_result = result
+                st.session_state.last_analyzed_fingerprint = img_fingerprint
                 st.session_state.current_scan_id = scan_id
                 st.session_state.current_img_path = str(save_path)
 

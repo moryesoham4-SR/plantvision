@@ -1,6 +1,23 @@
+import io
+import base64
 import numpy as np
 from PIL import Image
 import config
+
+def image_to_base64(img: Image.Image, max_dim: int = 400, quality: int = 80) -> str:
+    """Converts a PIL Image to an optimized Base64 JPEG data URL for permanent cloud storage."""
+    try:
+        thumb = img.copy()
+        thumb.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+        if thumb.mode != "RGB":
+            thumb = thumb.convert("RGB")
+        buffered = io.BytesIO()
+        thumb.save(buffered, format="JPEG", quality=quality, optimize=True)
+        img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        return f"data:image/jpeg;base64,{img_str}"
+    except Exception as e:
+        print(f"Base64 conversion error: {e}")
+        return ""
 
 def preprocess_image(image_input) -> tuple[Image.Image, Image.Image, np.ndarray, dict]:
     """
@@ -36,4 +53,5 @@ def preprocess_image(image_input) -> tuple[Image.Image, Image.Image, np.ndarray,
     }
 
     return img, resized_img, tensor_input, metadata
+
 

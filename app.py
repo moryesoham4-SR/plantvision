@@ -10,9 +10,10 @@ import plotly.graph_objects as go
 import config
 import database
 import auth
-from preprocessor import preprocess_image
+from preprocessor import preprocess_image, image_to_base64
 from report_generator import generate_pdf_report
 from data.disease_library import DISEASE_KNOWLEDGE_BASE
+
 from models.potato_model import predict_potato
 from models.tomato_model import predict_tomato
 from models.apple_model import predict_apple
@@ -396,7 +397,10 @@ if selected_page == "🔬 Disease Scanner":
                 else:
                     result = predict_apple(tensor_input, sample_name)
                 
-                # Save scan image to uploads folder
+                # Convert leaf image to compact Base64 JPEG Data URL for Supabase storage
+                img_b64 = image_to_base64(display_img)
+                
+                # Also cache locally
                 save_filename = f"scan_{user['id']}_{int(meta['processed_size'][0])}_{selected_plant_id}_{sample_name.replace(' ', '_')}.jpg"
                 save_path = config.UPLOAD_DIR / save_filename
                 try:
@@ -404,7 +408,7 @@ if selected_page == "🔬 Disease Scanner":
                 except Exception:
                     save_path = str(save_path)
                 
-                # Persist scan to SQLite
+                # Persist scan (with Base64 image data) to Supabase Cloud & SQLite
                 scan_id = database.save_scan(
                     user_id=user["id"],
                     plant=result["plant_name"],
@@ -412,7 +416,7 @@ if selected_page == "🔬 Disease Scanner":
                     confidence=result["confidence"],
                     severity=result["severity"],
                     is_healthy=result["is_healthy"],
-                    image_path=str(save_path),
+                    image_path=img_b64 if img_b64 else str(save_path),
                     symptoms=result["symptoms"],
                     remedies=result["remedies"]
                 )
@@ -420,6 +424,7 @@ if selected_page == "🔬 Disease Scanner":
                 st.session_state.current_result = result
                 st.session_state.current_scan_id = scan_id
                 st.session_state.current_img_path = str(save_path)
+
                 
         if "current_result" in st.session_state:
             res = st.session_state.current_result
@@ -525,13 +530,20 @@ elif selected_page == "📜 Scan History":
                 h_col1, h_col2 = st.columns([1, 2])
 
                 with h_col1:
-                    if os.path.exists(scan["image_path"]):
+                    img_data = scan.get("image_path", "")
+                    if img_data:
                         try:
-                            st.image(scan["image_path"], caption=f"{scan['plant']} Leaf", use_container_width=True)
+                            if str(img_data).startswith("data:image") or str(img_data).startswith("/9j/"):
+                                st.image(img_data, caption=f"{scan['plant']} Leaf (Cloud)", use_container_width=True)
+                            elif os.path.exists(str(img_data)):
+                                st.image(img_data, caption=f"{scan['plant']} Leaf", use_container_width=True)
+                            else:
+                                st.caption("Leaf thumbnail saved in cloud.")
                         except Exception:
                             st.caption("Image preview unavailable.")
                     else:
-                        st.caption("Image file stored locally.")
+                        st.caption("No image recorded.")
+
                 with h_col2:
                     st.markdown(f"**Severity:** {scan['severity']} | **Status:** {'Healthy' if scan['is_healthy'] else 'Infected'}")
                     st.markdown(f"**Confidence Score:** {scan['confidence']*100:.1f}%")

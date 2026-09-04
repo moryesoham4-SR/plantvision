@@ -351,7 +351,7 @@ def save_scan(
 
     # 1. Try Supabase Cloud
     scan_payload = {
-        "user_id": user_id,
+        "user_id": int(user_id) if str(user_id).isdigit() else user_id,
         "plant": plant,
         "disease": disease,
         "confidence": float(confidence),
@@ -371,6 +371,8 @@ def save_scan(
                 sup_scan_id = records[0].get("id")
         except Exception:
             pass
+    elif sup_res is not None:
+        print(f"Supabase scan insert failed with status {sup_res.status_code}: {sup_res.text}")
 
     # 2. Always persist to SQLite
     conn = get_connection()
@@ -405,8 +407,11 @@ def get_user_scans(
     status_filter: Optional[str] = None,
     search_term: Optional[str] = None
 ) -> List[Dict[str, Any]]:
-    # 1. Try Supabase
-    params = {"user_id": f"eq.{user_id}", "order": "timestamp.desc"}
+    # 1. Try Supabase Cloud First
+    params = {
+        "user_id": f"eq.{user_id}",
+        "order": "id.desc"
+    }
     if plant_filter and plant_filter.lower() != "all":
         params["plant"] = f"ilike.{plant_filter.strip()}"
     if status_filter:
@@ -426,6 +431,7 @@ def get_user_scans(
                 return records
         except Exception:
             pass
+
 
     # 2. Fallback SQLite
     conn = get_connection()

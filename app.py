@@ -299,11 +299,12 @@ if selected_page == "🔬 Disease Scanner":
     col_left, col_right = st.columns([1, 1], gap="large")
     
     with col_left:
-        st.markdown("#### 1. Select Target Plant")
+        st.markdown("#### 1. Select Target Plant *(Compulsory)*")
         plant_options = {
-            "potato": "🥔 Potato (Solanum tuberosum)",
-            "tomato": "🍅 Tomato (Solanum lycopersicum)",
-            "apple": "🍎 Apple (Malus domestica)"
+            "none": "⚠️ -- Select Target Plant (Compulsory) --",
+            "potato": "🥔 Potato (Solanum tuberosum) - Ready",
+            "tomato": "🍅 Tomato (Solanum lycopersicum) - Ready",
+            "apple": "🍎 Apple (Malus domestica) - Coming Soon ⏳"
         }
         selected_plant_id = st.selectbox(
             "Target Plant",
@@ -311,76 +312,76 @@ if selected_page == "🔬 Disease Scanner":
             format_func=lambda x: plant_options[x]
         )
         
-        st.markdown("#### 2. Input Leaf Image")
-        input_mode = st.radio(
-            "Choose Input Method:",
-            ["📁 Upload Image File", "📷 Live Camera Snap", "⚡ 1-Click Test Samples"],
-            horizontal=True
-        )
-        
         uploaded_image = None
         sample_name = ""
-        
-        if input_mode == "📁 Upload Image File":
-            file_upload = st.file_uploader(
-                "Upload leaf photo (JPG, JPEG, PNG, WEBP, BMP, TIFF, GIF):",
-                type=["jpg", "jpeg", "png", "webp", "bmp", "tiff", "gif", "jfif"],
-                help="Supports all major image formats (JPEG, PNG, WebP, BMP, TIFF). Image will be automatically resized & normalized to 224x224 RGB."
-            )
-            if file_upload is not None:
-                uploaded_image = file_upload
-                sample_name = file_upload.name
-        elif input_mode == "📷 Live Camera Snap":
-            cam_upload = st.camera_input("Take a clear photo of the plant leaf:")
-            if cam_upload is not None:
-                uploaded_image = cam_upload
-                sample_name = "live_camera_leaf.jpg"
-        else:
-            # 1-Click Samples
+        scan_btn = False
 
-            sample_choices = {
-                "potato": [
-                    ("Early Blight", "potato_early_blight.jpg"),
-                    ("Late Blight", "potato_late_blight.jpg"),
-                    ("Healthy", "potato_healthy.jpg")
-                ],
-                "tomato": [
-                    ("Early Blight", "tomato_early_blight.jpg"),
-                    ("Late Blight", "tomato_late_blight.jpg"),
-                    ("Healthy", "tomato_healthy.jpg")
-                ],
-                "apple": [
-                    ("Apple Scab", "apple_scab.jpg"),
-                    ("Black Rot", "apple_black_rot.jpg"),
-                    ("Healthy", "apple_healthy.jpg")
-                ]
-            }
-            
-            samples = sample_choices.get(selected_plant_id, [])
-            sample_label = st.selectbox(
-                "Pick a pre-configured sample condition:",
-                options=[s[0] for s in samples]
+        if selected_plant_id == "none":
+            st.warning("🌱 **Selecting a target plant is compulsory.** Please choose **Potato** or **Tomato** from the dropdown above to enable the scanner.")
+        elif selected_plant_id == "apple":
+            st.info("🍎 **Apple Disease Model is Coming Soon ⏳**\n\nOur deep learning neural networks for Apple Scab, Black Rot, and Cedar Apple Rust are currently under active training.\n\nPlease select **🥔 Potato** or **🍅 Tomato** for instant live diagnosis.")
+        else:
+            st.markdown("#### 2. Input Leaf Image")
+            input_mode = st.radio(
+                "Choose Input Method:",
+                ["📁 Upload Image File", "📷 Live Camera Snap", "⚡ 1-Click Test Samples"],
+                horizontal=True
             )
             
-            selected_sample_file = next((s[1] for s in samples if s[0] == sample_label), None)
-            sample_path = config.SAMPLES_DIR / selected_sample_file if selected_sample_file else None
-            
-            if sample_path and sample_path.exists():
-                uploaded_image = Image.open(sample_path)
-                sample_name = selected_sample_file
+            if input_mode == "📁 Upload Image File":
+                file_upload = st.file_uploader(
+                    "Upload leaf photo (JPG, JPEG, PNG, WEBP, BMP, TIFF, GIF):",
+                    type=["jpg", "jpeg", "png", "webp", "bmp", "tiff", "gif", "jfif"],
+                    help="Supports all major image formats (JPEG, PNG, WebP, BMP, TIFF). Image will be automatically resized & normalized to 224x224 RGB."
+                )
+                if file_upload is not None:
+                    uploaded_image = file_upload
+                    sample_name = file_upload.name
+            elif input_mode == "📷 Live Camera Snap":
+                cam_upload = st.camera_input("Take a clear photo of the plant leaf:")
+                if cam_upload is not None:
+                    uploaded_image = cam_upload
+                    sample_name = "live_camera_leaf.jpg"
             else:
-                # Synthetic sample preview
-                uploaded_image = Image.new("RGB", (300, 300), color=(46, 139, 87))
-                sample_name = selected_sample_file or "sample_leaf.jpg"
+                # 1-Click Samples
+                sample_choices = {
+                    "potato": [
+                        ("Early Blight", "potato_early_blight.jpg"),
+                        ("Late Blight", "potato_late_blight.jpg"),
+                        ("Healthy", "potato_healthy.jpg")
+                    ],
+                    "tomato": [
+                        ("Early Blight", "tomato_early_blight.jpg"),
+                        ("Late Blight", "tomato_late_blight.jpg"),
+                        ("Healthy", "tomato_healthy.jpg")
+                    ]
+                }
                 
-        if uploaded_image is not None:
-            display_img, resized_img, tensor_input, meta = preprocess_image(uploaded_image)
-            st.image(display_img, caption=f"Input Image (Preprocessed to {meta['processed_size'][0]}x{meta['processed_size'][1]} RGB)", use_container_width=True)
-            
-            scan_btn = st.button("🚀 Analyze & Diagnose Leaf", type="primary", use_container_width=True)
-        else:
-            st.info("Please upload an image or pick a sample leaf to begin scanning.")
-            scan_btn = False
+                samples = sample_choices.get(selected_plant_id, [])
+                sample_label = st.selectbox(
+                    "Pick a pre-configured sample condition:",
+                    options=[s[0] for s in samples]
+                )
+                
+                selected_sample_file = next((s[1] for s in samples if s[0] == sample_label), None)
+                sample_path = config.SAMPLES_DIR / selected_sample_file if selected_sample_file else None
+                
+                if sample_path and sample_path.exists():
+                    uploaded_image = Image.open(sample_path)
+                    sample_name = selected_sample_file
+                else:
+                    # Synthetic sample preview
+                    uploaded_image = Image.new("RGB", (300, 300), color=(46, 139, 87))
+                    sample_name = selected_sample_file or "sample_leaf.jpg"
+                    
+            if uploaded_image is not None:
+                display_img, resized_img, tensor_input, meta = preprocess_image(uploaded_image)
+                st.image(display_img, caption=f"Input Image (Preprocessed to {meta['processed_size'][0]}x{meta['processed_size'][1]} RGB)", use_container_width=True)
+                
+                scan_btn = st.button("🚀 Analyze & Diagnose Leaf", type="primary", use_container_width=True)
+            else:
+                st.info("Please upload an image, snap a photo, or pick a sample leaf to begin scanning.")
+
 
     with col_right:
         st.markdown("#### 3. AI Diagnosis & Prescription")
@@ -652,10 +653,22 @@ elif selected_page == "📚 Disease Library":
         </div>
     """, unsafe_allow_html=True)
     
-    lib_plant = st.selectbox("Select Plant Guide", ["Potato", "Tomato", "Apple"])
-    plant_key = lib_plant.lower()
+    lib_plant_options = {
+        "potato": "🥔 Potato (Solanum tuberosum) - Ready",
+        "tomato": "🍅 Tomato (Solanum lycopersicum) - Ready",
+        "apple": "🍎 Apple (Malus domestica) - Coming Soon ⏳"
+    }
+    lib_plant_key = st.selectbox(
+        "Select Plant Guide",
+        options=list(lib_plant_options.keys()),
+        format_func=lambda x: lib_plant_options[x]
+    )
     
-    diseases = DISEASE_KNOWLEDGE_BASE.get(plant_key, {})
+    if lib_plant_key == "apple":
+        st.info("🍎 **Apple Pathology AI Model: Coming Soon ⏳**\n\nThe deep learning classification network for Apple is currently in training. The diagnostic profiles and treatments below are provided for educational reference.")
+
+    diseases = DISEASE_KNOWLEDGE_BASE.get(lib_plant_key, {})
+
     
     for dis_name, dis_info in diseases.items():
         with st.expander(f"{'🟢' if dis_info['is_healthy'] else '🔴'} **{dis_name}** ({dis_info['scientific_name']}) — Severity: {dis_info['severity']}"):

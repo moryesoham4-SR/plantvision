@@ -62,9 +62,9 @@ PLANTS = {
         "name": "Apple",
         "scientific_name": "Malus domestica",
         "icon": "🍎",
-        "status": "Active",
+        "status": "Coming Soon",
         "model_file": "apple_model.keras",
-        "drive_file_id": "20_cDeFgHiJklMnoPqrStUvWxYz678",
+        "drive_file_id": "",
         "classes": [
             "Apple Scab",
             "Black Rot",
@@ -73,4 +73,5 @@ PLANTS = {
         ]
     }
 }
+
 

@@ -403,12 +403,14 @@ if selected_page == "🔬 Disease Scanner":
                 is_leaf, leaf_msg, leaf_meta = validate_leaf_image(display_img)
                 if not is_leaf:
                     st.warning(leaf_msg)
+                    st.session_state.current_result = None
                     scan_btn = False
                 else:
                     st.success("🌿 Plant leaf verified. Ready for pathological diagnosis!")
                     scan_btn = st.button("🚀 Analyze & Diagnose Leaf", type="primary", use_container_width=True)
             else:
                 st.info("Please upload an image, snap a photo, or pick a sample leaf to begin scanning.")
+                is_leaf = False
 
 
 
@@ -454,7 +456,7 @@ if selected_page == "🔬 Disease Scanner":
                 st.session_state.current_img_path = str(save_path)
 
                 
-        if "current_result" in st.session_state:
+        if st.session_state.get("current_result") is not None:
             res = st.session_state.current_result
             
             # Severity color class
@@ -468,7 +470,10 @@ if selected_page == "🔬 Disease Scanner":
                         <h2 style="margin:0;">{res['predicted_disease']}</h2>
                         <span class="badge {badge_class}">{sev} Severity</span>
                     </div>
-                    <p style="margin: 0.3rem 0 0 0; opacity: 0.9;"><strong>Plant:</strong> {res['plant_name']} (<em>{res['scientific_name']}</em>) | <strong>Pathogen:</strong> {res['pathogen']}</p>
+                    <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">
+                        <b>Plant:</b> {res['plant_name']} (<i>{res.get('scientific_name', '')}</i>) | 
+                        <b>Pathogen:</b> {res.get('pathogen', 'N/A')}
+                    </p>
                 </div>
             """, unsafe_allow_html=True)
             

@@ -7,12 +7,31 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 
+import base64
 import config
 import database
 import auth
-from preprocessor import preprocess_image, image_to_base64
+from preprocessor import preprocess_image
+
+try:
+    from preprocessor import image_to_base64
+except Exception:
+    def image_to_base64(img: Image.Image, max_dim: int = 400, quality: int = 80) -> str:
+        try:
+            thumb = img.copy()
+            thumb.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+            if thumb.mode != "RGB":
+                thumb = thumb.convert("RGB")
+            buffered = io.BytesIO()
+            thumb.save(buffered, format="JPEG", quality=quality, optimize=True)
+            img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+            return f"data:image/jpeg;base64,{img_str}"
+        except Exception:
+            return ""
+
 from report_generator import generate_pdf_report
 from data.disease_library import DISEASE_KNOWLEDGE_BASE
+
 
 from models.potato_model import predict_potato
 from models.tomato_model import predict_tomato

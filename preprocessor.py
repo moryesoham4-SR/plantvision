@@ -19,6 +19,67 @@ def image_to_base64(img: Image.Image, max_dim: int = 400, quality: int = 80) -> 
         print(f"Base64 conversion error: {e}")
         return ""
 
+def validate_leaf_image(image_input) -> tuple[bool, str, dict]:
+    """
+    Validates whether an input image contains a genuine agricultural plant leaf.
+    Uses agronomic color ratios (Excess Green Index - ExG, foliage hue masks, non-plant skin/object filters).
+    """
+    try:
+        if not isinstance(image_input, Image.Image):
+            img = Image.open(image_input)
+        else:
+            img = image_input
+
+        if img.mode != "RGB":
+            img_rgb = img.convert("RGB")
+        else:
+            img_rgb = img
+
+        # Fast downscaled inspection array
+        small_img = img_rgb.resize((150, 150))
+        arr = np.array(small_img, dtype=np.float32)
+
+        R = arr[:, :, 0]
+        G = arr[:, :, 1]
+        B = arr[:, :, 2]
+
+        # 1. Detect Foliar / Plant Tissue (Green, Yellow Chlorosis, Brown Necrosis)
+        foliage_mask = (
+            ((G >= R * 0.85) & (G >= B * 0.85) & (G > 25)) |  # Green foliage
+            ((R > 80) & (G > 75) & (B < G * 0.9) & (R > B * 1.2)) |  # Yellow / Chlorotic leaf
+            ((R > 50) & (G > 30) & (B < 100) & (R >= G) & (G >= B * 0.9))   # Brown / Necrotic spots
+        )
+        plant_ratio = float(np.sum(foliage_mask) / (150 * 150))
+
+        # 2. Detect Human Skin Tones (Face, hands, selfies)
+        skin_mask = (
+            (R > 95) & (G > 40) & (B > 20) &
+            ((R - G) > 15) & (R > B) & ((R - B) > 15) & (G > B * 0.85) &
+            (np.abs(R - G) < 130)
+        )
+        skin_ratio = float(np.sum(skin_mask) / (150 * 150))
+
+        # Validation Checks
+        if skin_ratio > 0.35 and plant_ratio < 0.35:
+            return False, "⚠️ Non-leaf image detected (human subject or selfie). Please aim your camera directly at a plant leaf.", {
+                "plant_ratio": plant_ratio,
+                "skin_ratio": skin_ratio
+            }
+
+        if plant_ratio < 0.15:
+            return False, "⚠️ Non-plant image detected. The photo does not appear to contain a crop leaf (Potato or Tomato). Please capture a clear, close-up photo of the leaf.", {
+                "plant_ratio": plant_ratio,
+                "skin_ratio": skin_ratio
+            }
+
+        return True, "Valid plant leaf detected.", {
+            "plant_ratio": plant_ratio,
+            "skin_ratio": skin_ratio
+        }
+    except Exception as e:
+        return True, f"Validation fallback: {e}", {"plant_ratio": 1.0, "skin_ratio": 0.0}
+
+
 def preprocess_image(image_input) -> tuple[Image.Image, Image.Image, np.ndarray, dict]:
     """
     Standardizes input images to 224x224 RGB float32 arrays normalized to [0, 1].

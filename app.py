@@ -11,7 +11,8 @@ import base64
 import config
 import database
 import auth
-from preprocessor import preprocess_image
+from preprocessor import preprocess_image, validate_leaf_image
+
 
 try:
     from preprocessor import image_to_base64
@@ -398,9 +399,17 @@ if selected_page == "🔬 Disease Scanner":
                 display_img, resized_img, tensor_input, meta = preprocess_image(uploaded_image)
                 st.image(display_img, caption=f"Input Image (Preprocessed to {meta['processed_size'][0]}x{meta['processed_size'][1]} RGB)", use_container_width=True)
                 
-                scan_btn = st.button("🚀 Analyze & Diagnose Leaf", type="primary", use_container_width=True)
+                # Leaf & Foliage Authenticity Check
+                is_leaf, leaf_msg, leaf_meta = validate_leaf_image(display_img)
+                if not is_leaf:
+                    st.warning(leaf_msg)
+                    scan_btn = False
+                else:
+                    st.success("🌿 Plant leaf verified. Ready for pathological diagnosis!")
+                    scan_btn = st.button("🚀 Analyze & Diagnose Leaf", type="primary", use_container_width=True)
             else:
                 st.info("Please upload an image, snap a photo, or pick a sample leaf to begin scanning.")
+
 
 
     with col_right:

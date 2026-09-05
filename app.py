@@ -325,7 +325,7 @@ if selected_page == "🔬 Disease Scanner":
             "none": "⚠️ -- Select Target Plant (Compulsory) --",
             "potato": "🥔 Potato (Solanum tuberosum) - Ready",
             "tomato": "🍅 Tomato (Solanum lycopersicum) - Ready",
-            "apple": "🍎 Apple (Malus domestica) - Coming Soon ⏳"
+            "apple": "🍎 Apple (Malus domestica) - Ready"
         }
         selected_plant_id = st.selectbox(
             "Target Plant",
@@ -339,10 +339,7 @@ if selected_page == "🔬 Disease Scanner":
 
         if selected_plant_id == "none":
             st.session_state.current_result = None
-            st.warning("🌱 **Selecting a target plant is compulsory.** Please choose **Potato** or **Tomato** from the dropdown above to enable the scanner.")
-        elif selected_plant_id == "apple":
-            st.session_state.current_result = None
-            st.info("🍎 **Apple Disease Model is Coming Soon ⏳**\n\nOur deep learning neural networks for Apple Scab, Black Rot, and Cedar Apple Rust are currently under active training.\n\nPlease select **🥔 Potato** or **🍅 Tomato** for instant live diagnosis.")
+            st.warning("🌱 **Selecting a target plant is compulsory.** Please choose **Potato**, **Tomato**, or **Apple** from the dropdown above to enable the scanner.")
         else:
             st.markdown("#### 2. Input Leaf Image")
             input_mode = st.radio(
@@ -377,6 +374,11 @@ if selected_page == "🔬 Disease Scanner":
                         ("Early Blight", "tomato_early_blight.jpg"),
                         ("Late Blight", "tomato_late_blight.jpg"),
                         ("Healthy", "tomato_healthy.jpg")
+                    ],
+                    "apple": [
+                        ("Apple Scab", "apple_scab.jpg"),
+                        ("Black Rot", "apple_black_rot.jpg"),
+                        ("Healthy", "apple_healthy.jpg")
                     ]
                 }
                 
@@ -385,6 +387,7 @@ if selected_page == "🔬 Disease Scanner":
                     "Pick a pre-configured sample condition:",
                     options=[s[0] for s in samples]
                 )
+
                 
                 selected_sample_file = next((s[1] for s in samples if s[0] == sample_label), None)
                 sample_path = config.SAMPLES_DIR / selected_sample_file if selected_sample_file else None
@@ -709,20 +712,16 @@ elif selected_page == "📚 Disease Library":
     lib_plant_options = {
         "potato": "🥔 Potato (Solanum tuberosum) - Ready",
         "tomato": "🍅 Tomato (Solanum lycopersicum) - Ready",
-        "apple": "🍎 Apple (Malus domestica) - Coming Soon ⏳"
+        "apple": "🍎 Apple (Malus domestica) - Ready"
     }
     lib_plant_key = st.selectbox(
         "Select Plant Guide",
         options=list(lib_plant_options.keys()),
         format_func=lambda x: lib_plant_options[x]
     )
-    
-    if lib_plant_key == "apple":
-        st.info("🍎 **Apple Pathology AI Model: Coming Soon ⏳**\n\nThe deep learning classification network for Apple is currently in training. The diagnostic profiles and treatments below are provided for educational reference.")
 
     diseases = DISEASE_KNOWLEDGE_BASE.get(lib_plant_key, {})
 
-    
     for dis_name, dis_info in diseases.items():
         with st.expander(f"{'🟢' if dis_info['is_healthy'] else '🔴'} **{dis_name}** ({dis_info['scientific_name']}) — Severity: {dis_info['severity']}"):
             st.markdown(f"**Description:** {dis_info['description']}")
@@ -775,17 +774,20 @@ elif selected_page == "⚙️ Settings & Info":
     with st.expander("🔗 Configure Google Drive File Links / IDs", expanded=True):
         st.markdown(f"**Folder:** [Plant Disease Detection Google Drive](https://drive.google.com/drive/u/0/folders/1ZYQxCLsTL5JiHX2EfX-7FljYZHmL_t-P)")
         
-        c_p1, c_p2 = st.columns(2)
+        c_p1, c_p2, c_p3 = st.columns(3)
         with c_p1:
-            potato_input = st.text_input("🥔 Potato Model (Link or File ID)", value=config.PLANTS["potato"].get("drive_file_id", ""), placeholder="e.g. 1ZYQxCLsTL5JiHX2EfX-7FljYZHmL_t-P or https://drive.google.com/file/d/...")
+            potato_input = st.text_input("🥔 Potato Model (Link / ID)", value=config.PLANTS["potato"].get("drive_file_id", ""), placeholder="e.g. 1uPPXXC90noUpibecudBMiw9RPht9wpCP")
         with c_p2:
-            tomato_input = st.text_input("🍅 Tomato Model (Link or File ID)", value=config.PLANTS["tomato"].get("drive_file_id", ""), placeholder="e.g. https://drive.google.com/file/d/...")
+            tomato_input = st.text_input("🍅 Tomato Model (Link / ID)", value=config.PLANTS["tomato"].get("drive_file_id", ""), placeholder="e.g. 1uPPXXC90noUpibecudBMiw9RPht9wpCP")
+        with c_p3:
+            apple_input = st.text_input("🍎 Apple Model (Link / ID)", value=config.PLANTS["apple"].get("drive_file_id", ""), placeholder="e.g. 1BNDNZy83ljGSYBItceOY8GdHp6CKgeY1")
 
         if st.button("⚡ Test & Download Weights from Drive"):
             from models.model_loader import download_from_google_drive, extract_file_id
             
             p_id = extract_file_id(potato_input)
             t_id = extract_file_id(tomato_input)
+            a_id = extract_file_id(apple_input)
 
             if p_id:
                 config.PLANTS["potato"]["drive_file_id"] = p_id
@@ -804,6 +806,15 @@ elif selected_page == "⚙️ Settings & Info":
                         st.success("✅ Tomato model weights synced and downloaded successfully!")
                     else:
                         st.warning("⚠️ Tomato model download attempted. Ensure the Google Drive file is set to 'Anyone with the link can view'.")
+
+            if a_id:
+                config.PLANTS["apple"]["drive_file_id"] = a_id
+                with st.spinner("Downloading Apple model weights..."):
+                    a_path = config.MODELS_DIR / config.PLANTS["apple"]["model_file"]
+                    if download_from_google_drive(a_id, a_path):
+                        st.success("✅ Apple model weights synced and downloaded successfully!")
+                    else:
+                        st.warning("⚠️ Apple model download attempted. Ensure the Google Drive file is set to 'Anyone with the link can view'.")
 
     st.markdown("---")
 

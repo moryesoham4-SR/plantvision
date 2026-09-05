@@ -22,7 +22,7 @@ def image_to_base64(img: Image.Image, max_dim: int = 400, quality: int = 80) -> 
 def validate_leaf_image(image_input) -> tuple[bool, str, dict]:
     """
     Strict agricultural validation for crop leaves (Potato, Tomato).
-    Rejects human faces, selfies, furniture, curtains, and non-plant objects.
+    Rejects human faces, selfies, clothing, curtains, furniture, and non-plant objects.
     """
     try:
         if not isinstance(image_input, Image.Image):
@@ -42,50 +42,48 @@ def validate_leaf_image(image_input) -> tuple[bool, str, dict]:
         R = arr[:, :, 0]
         G = arr[:, :, 1]
         B = arr[:, :, 2]
-
-        # 1. Excess Green Index (ExG = 2*G - R - B)
-        exg = 2 * G - R - B
         
-        # 2. HSV Green & Plant Foliage Hue Range
+        # 1. HSV Conversion for Spectrum Analysis
         hsv = small_img.convert("HSV")
         h, s, v = hsv.split()
         h_arr = np.array(h, dtype=np.float32)
         s_arr = np.array(s, dtype=np.float32)
         v_arr = np.array(v, dtype=np.float32)
 
-        # In PIL HSV: Green/Yellow-Green hue is 22 to 105 (equivalent to 32° to 150°)
+        # 2. Strict Living Plant Chlorophyll Green Foliage Detector
+        # Living crop leaves strictly have Green > Red and Green > Blue with vivid saturation
         green_foliage_mask = (
-            (h_arr >= 22) & (h_arr <= 105) & 
-            (s_arr >= 25) & (v_arr >= 25) &
-            (G >= R * 0.95) & (G >= B * 1.05)
+            (h_arr >= 25) & (h_arr <= 100) & 
+            (s_arr >= 35) & (v_arr >= 30) &
+            (G > R * 1.06) & (G > B * 1.10) &
+            ((G - R) >= 6)
         )
         green_ratio = float(np.sum(green_foliage_mask) / (150 * 150))
 
-        # 3. Detect Human Skin / Face
+        # 3. Human Skin & Face Detector
         skin_mask = (
-            (R > 85) & (G > 35) & (B > 20) &
-            ((R - G) > 12) & (R > B) & ((R - B) > 12) & 
-            (G >= B * 0.8) &
-            (h_arr < 22)  # Red/Orange human hue range
+            (R > 75) & (G > 35) & (B > 20) &
+            ((R - G) >= 10) & (R > B) & ((R - B) >= 12) & 
+            (h_arr < 24)  # Red/Orange/Peach human skin hue range
         )
         skin_ratio = float(np.sum(skin_mask) / (150 * 150))
 
-        # Real leaves MUST have at least 15% green vegetative chlorophyll area
-        if green_ratio < 0.15:
-            if skin_ratio > 0.25:
-                return False, "⚠️ Human face or selfie detected! Please do not point the camera at people. Aim the camera directly at a real Potato or Tomato plant leaf.", {
+        # Real leaves MUST have at least 18% genuine green vegetative chlorophyll area
+        if green_ratio < 0.18:
+            if skin_ratio > 0.10:
+                return False, "⚠️ Human face or person detected! Please do not point the camera at people. Aim the camera directly at a real Potato or Tomato plant leaf.", {
                     "green_ratio": green_ratio,
                     "skin_ratio": skin_ratio
                 }
             else:
-                return False, f"⚠️ Non-plant object detected! Real agricultural foliage was not found (detected plant color: {green_ratio*100:.1f}%). Please position a real crop leaf in front of the camera.", {
+                return False, f"⚠️ Non-plant object detected! No agricultural plant leaf found (detected green foliar ratio: {green_ratio*100:.1f}%). Please position a real crop leaf in front of the camera.", {
                     "green_ratio": green_ratio,
                     "skin_ratio": skin_ratio
                 }
 
-        # If skin tone dominates over green foliage
-        if skin_ratio > 0.40 and green_ratio < 0.30:
-            return False, "⚠️ Human subject detected. Please focus exclusively on the crop leaf blade.", {
+        # If human skin is visible in the frame (e.g. face beside leaf)
+        if skin_ratio > 0.20:
+            return False, "⚠️ Human subject detected. Please hold the plant leaf closer to the camera so only the crop leaf is in view.", {
                 "green_ratio": green_ratio,
                 "skin_ratio": skin_ratio
             }
@@ -96,6 +94,7 @@ def validate_leaf_image(image_input) -> tuple[bool, str, dict]:
         }
     except Exception as e:
         return True, f"Validation fallback: {e}", {"green_ratio": 1.0, "skin_ratio": 0.0}
+
 
 
 
